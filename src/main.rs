@@ -1,9 +1,8 @@
 use ynab_tui::page::*;
 
+use crossterm::{event::*, terminal::*, *};
 use std::io;
-use crossterm::{*, event::*, terminal::*};
-use tui::{*, backend::*, layout::*, widgets::*};
-
+use tui::{backend::*, layout::*, widgets::*, *};
 
 pub struct App {
     page_stack: Vec<Box<dyn Page>>,
@@ -77,10 +76,12 @@ impl App {
     }
 }
 
-
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    use ynab_tui::data_layer::DataGateway;
     dotenvy::dotenv().unwrap();
+    ynab_tui::reset_db();
 
+    DataGateway::new().refresh_db().await;
     App::new().run()
 }

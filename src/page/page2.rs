@@ -25,8 +25,7 @@ impl Page for Page2 {
             match key.code {
                 KeyCode::Char('q') => return Ok(Message::Quit),
                 KeyCode::Char('b') => return Ok(Message::Back),
-                KeyCode::Char('n') => {
-                }
+                KeyCode::Char('n') => {}
                 KeyCode::Char('f') => return Ok(Message::Forward),
                 KeyCode::Char('+') => {
                     self.number += 1;

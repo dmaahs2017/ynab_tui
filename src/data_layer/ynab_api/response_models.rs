@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Cleared {
+pub enum ClearedStatus {
     #[serde(rename = "cleared")]
     Cleared,
     #[serde(rename = "uncleared")]
@@ -40,7 +40,7 @@ pub struct HybridTransaction {
     pub date: String,
     pub amount: i64,
     pub memo: Option<String>,
-    pub cleared: Cleared,
+    pub cleared: ClearedStatus,
     pub approved: bool,
     pub flag_color: Option<FlagColor>,
     pub account_id: String,
@@ -62,6 +62,55 @@ pub struct HybridTransaction {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HybridTransactionsResponse {
     pub transactions: Vec<HybridTransaction>,
+}
+        //"category_id": null,
+        //"flag_color": null,
+        //"import_id": null,
+        //"matched_transaction_id": null,
+        //"memo": null,
+        //"transfer_account_id": null,
+        //"transfer_transaction_id": null,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TransactionDetail {
+    pub id: String,
+    pub date: String, //date string The transaction date in ISO format (e.g. 2016-12-01)
+    pub amount: i64,
+    pub memo: Option<String>,
+    pub cleared: ClearedStatus,
+    pub approved: bool,
+    pub flag_color: Option<FlagColor>,
+    pub account_id: String,                  //Unique
+    pub payee_id: Option<String>,            //Unique
+    pub category_id: Option<String>,                 //Unique
+    pub transfer_account_id: Option<String>, //Unique
+    pub transfer_transaction_id: Option<String>,
+    pub matched_transaction_id: Option<String>,
+    pub import_id: Option<String>,
+    pub deleted: bool,
+    pub account_name: String,
+    pub payee_name: Option<String>,
+    pub category_name: String,
+    pub subtransactions: Vec<SubTransaction>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SubTransaction {
+    pub id: String,
+    pub transaction_id: String,
+    pub amount: i64,
+    pub memo: Option<String>,
+    pub payee_id: Option<String>, //Unique
+    pub payee_name: Option<String>,
+    pub category_id: Option<String>, //Unique
+    pub category_name: String,
+    pub transfer_account_id: Option<String>, //Unique
+    pub transfer_transaction_id: Option<String>,
+    pub deleted: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TransactionsResponse {
+    pub transactions: Vec<TransactionDetail>,
 }
 
 /// TB=’Target Category Balance’, TBD=’Target Category Balance by Date’, MF=’Monthly Funding’, NEED=’Plan Your Spending’

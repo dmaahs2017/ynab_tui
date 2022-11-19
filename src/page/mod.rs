@@ -6,7 +6,21 @@ pub use page2::*;
 use std::io;
 use tui::backend::CrosstermBackend;
 use tui::layout::Rect;
+use tui::text::Spans;
 use tui::Frame;
+
+trait IntoSpans {
+    fn into_spans(&self) -> Spans;
+}
+
+impl IntoSpans for Option<String> {
+    fn into_spans(&self) -> Spans {
+        match self {
+            None => Spans::from("(empty)"),
+            Some(s) => Spans::from(s.clone()),
+        }
+    }
+}
 
 pub enum Message {
     Back,

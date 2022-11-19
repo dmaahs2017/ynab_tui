@@ -1,9 +1,11 @@
-mod ynab_api;
 mod database;
+mod ynab_api;
+pub use database::tear_down_db;
 pub mod models;
 
-use ynab_api::YnabApi;
 use database::QueryEngine;
+use models::*;
+use ynab_api::YnabApi;
 
 use chrono::Duration;
 use std::env;
@@ -17,38 +19,82 @@ impl DataGateway {
     pub fn new() -> Self {
         let token = env::var("YNAB_TOKEN").expect("Ynab token not in env");
         let cache_file = env::var("YNAB_CACHE_FILE").expect("YNAB_CACHE_FILE not in env");
-        let mut api = ynab_api::YnabApi::new(&token, &cache_file, Duration::hours(1));
-        let engine = QueryEngine::new(&std::env::var("DATABASE_URL").expect("DATABASE_URL not in env"));
+        let api = ynab_api::YnabApi::new(&token, &cache_file, Duration::hours(1));
+        let engine =
+            QueryEngine::new(&std::env::var("DATABASE_URL").expect("DATABASE_URL not in env"));
         Self { api, engine }
     }
 
-    pub async fn load_budgets(&mut self) {
-        let budget_list = self.api.list_budgets(false).await.expect("Failed to get budgets from api");
+    pub async fn refresh_db(&mut self) {
+        self.load_budgets().await;
+        let budgets = self.get_budgets();
+        for b in budgets {
+            self.load_transactions(&b.id).await
+        }
+    }
+
+    async fn load_budgets(&mut self) {
+        let budget_list = self
+            .api
+            .list_budgets(false)
+            .await
+            .expect("Failed to get budgets from api");
         for b in budget_list.data.budgets {
+            let b = models::Budget {
+                id: b.id,
+                name: b.name,
+                last_modified_on: b.last_modified_on,
+                first_month: b.first_month,
+                last_month: b.last_month,
+                date_format: b.date_format.format,
+            };
+
             if let Some(_) = self.engine.get_budget(&b.id) {
-                self.engine.update_budget(models::Budget {
-                    id: b.id,
-                    name: b.name,
-                    last_modified_on: b.last_modified_on,
-                    first_month: b.first_month,
-                    last_month: b.last_month,
-                    date_format: b.date_format.format
-                })
+                self.engine.update_budget(b)
             } else {
-                self.engine.insert_budget(models::Budget {
-                    id: b.id,
-                    name: b.name,
-                    last_modified_on: b.last_modified_on,
-                    first_month: b.first_month,
-                    last_month: b.last_month,
-                    date_format: b.date_format.format
-                })
+                self.engine.insert_budget(b)
             }
         }
     }
 
-    pub fn get_budgets(&self) -> Vec<models::Budget> {
+    pub fn get_budgets(&self) -> Vec<Budget> {
         self.engine.get_all_budgets()
     }
-}
 
+    async fn load_transactions(&mut self, budget_id: &str) {
+        let transactions = self
+            .api
+            .get_budget_transactions(budget_id, None, None, None)
+            .await
+            .expect("Failed to get transactions from api");
+
+        for t in transactions.data.transactions {
+            let t = Transaction {
+                id: t.id,
+                budget_id: budget_id.to_string(),
+                date: t.date,
+                amount: t.amount,
+                memo: t.memo,
+                account_id: t.account_id,
+                payee_id: t.payee_id,
+                category_id: t.category_id,
+                transfer_account_id: t.transfer_account_id,
+                transfer_transaction_id: t.transfer_transaction_id,
+                matched_transaction_id: t.matched_transaction_id,
+                deleted: t.deleted,
+                account_name: t.account_name,
+                payee_name: t.payee_name,
+                category_name: t.category_name,
+            };
+            if let Some(_) = self.engine.get_transaction(&t.id) {
+                self.engine.update_transaction(t)
+            } else {
+                self.engine.insert_transaction(t)
+            }
+        }
+    }
+
+    pub fn get_last_10_transactions(&self, budget_id: &str) -> Vec<Transaction> {
+        self.engine.get_last_10_transactions(budget_id)
+    }
+}
