@@ -17,7 +17,7 @@ pub enum Message {
 }
 
 pub trait Page {
-    fn ui(&self, frame: &mut Frame<CrosstermBackend<io::Stdout>>, area: Rect);
+    fn ui(&mut self, frame: &mut Frame<CrosstermBackend<io::Stdout>>, area: Rect);
 
     fn update(&mut self) -> io::Result<Message>;
 
