@@ -5,6 +5,7 @@ use tui::layout::*;
 use tui::style::*;
 use tui::text::*;
 use tui::widgets::*;
+use std::time::Duration;
 
 use crate::util::*;
 use crate::components::StatefulList;
@@ -49,12 +50,13 @@ impl Homepage {
 
 impl Page for Homepage {
     fn ui(&mut self, frame: &mut Frame<CrosstermBackend<io::Stdout>>, area: Rect) {
+        frame.render_widget(Clear, area);
         let budget_items = self
             .budgets
             .items
             .iter()
             .map(|b| {
-                let lines = vec![Spans::from(b.id.clone()), Spans::from(b.name.clone())];
+                let lines = vec![Spans::from(b.name.clone())];
                 ListItem::new(lines).style(Style::default().fg(Color::Black).bg(Color::White))
             })
             .collect::<Vec<_>>();
@@ -84,11 +86,26 @@ impl Page for Homepage {
     }
 
     fn update(&mut self) -> io::Result<Message> {
+        if let Ok(false) = poll(Duration::from_millis(200)) {
+            return Ok(Message::Noop);
+        }
+
         if let Event::Key(key) = read()? {
             match key.code {
                 KeyCode::Char('q') => return Ok(Message::Quit),
                 KeyCode::Char('b') => return Ok(Message::Back),
+                KeyCode::Char('r') => {
+                    let mut dg = DataGateway::new();
+                    dg.refresh_db();
+                    self.budgets = StatefulList::with_items(dg.get_budgets());
+                    self.transactions.clear();
+                    return Ok(Message::Noop);
+                }
                 KeyCode::Char('k') => {
+                    if self.budgets.items.is_empty() {
+                        return Ok(Message::Noop);
+                    }
+
                     let dg = DataGateway::new();
                     let i = self.budgets.previous();
                     let b_id = &self.budgets.items[i].id;
@@ -96,6 +113,10 @@ impl Page for Homepage {
                     return Ok(Message::Noop);
                 }
                 KeyCode::Char('j') => {
+                    if self.budgets.items.is_empty() {
+                        return Ok(Message::Noop);
+                    }
+
                     let dg = DataGateway::new();
                     let i = self.budgets.next();
                     let b_id = &self.budgets.items[i].id;

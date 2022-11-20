@@ -2,7 +2,8 @@ mod response_models;
 use response_models::*;
 
 use chrono::{DateTime, Duration, Local};
-use reqwest::{header, header::HeaderMap, Client};
+use reqwest::{header, header::HeaderMap};
+use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{fs, io};
@@ -43,7 +44,7 @@ impl YnabApi {
         }
     }
 
-    async fn get(&mut self, endpoint: &str) -> ApiResult<String> {
+    fn get(&mut self, endpoint: &str) -> ApiResult<String> {
         if let Some(cache_entry) = self.cache.get(endpoint) {
             if Local::now() - cache_entry.datetime < self.refresh_duration && !self.force_refresh {
                 self.cache_hit += 1;
@@ -62,10 +63,8 @@ impl YnabApi {
             .client
             .get(format!("{}{}", self.base_url, endpoint))
             .headers(headers)
-            .send()
-            .await?
-            .text()
-            .await?;
+            .send()?
+            .text()?;
 
         self.cache.insert(
             endpoint.to_string(),
@@ -78,17 +77,17 @@ impl YnabApi {
     }
 
     /// TODO: Implement include accounts feature
-    pub async fn list_budgets(
+    pub fn list_budgets(
         &mut self,
         _include_accounts: bool,
     ) -> ApiResult<Data<BudgetSummaryResponse>> {
         let endp = "/budgets";
-        Ok(serde_json::from_str(&self.get(endp).await?)?)
+        Ok(serde_json::from_str(&self.get(endp)?)?)
     }
 
     /// TODO
     #[allow(dead_code)]
-    pub async fn get_budget(
+    pub fn get_budget(
         &mut self,
         _budget_id: &str,
         _last_knowledge_of_server: Option<i32>,
@@ -98,13 +97,13 @@ impl YnabApi {
 
     /// TODO
     #[allow(dead_code)]
-    pub async fn budget_settings(&mut self, _budget_id: &str) -> ApiResult<Data<()>> {
+    pub fn budget_settings(&mut self, _budget_id: &str) -> ApiResult<Data<()>> {
         todo!("GET /budgets/{_budget_id}/settings")
     }
 
     /// TODO
     #[allow(dead_code)]
-    pub async fn list_accounts(
+    pub fn list_accounts(
         &mut self,
         _budget_id: &str,
         _last_knowledge_of_server: Option<i32>,
@@ -114,7 +113,7 @@ impl YnabApi {
 
     /// TODO
     #[allow(dead_code)]
-    pub async fn create_account(
+    pub fn create_account(
         &mut self,
         _budget_id: &str,
         _name: &str,
@@ -126,7 +125,7 @@ impl YnabApi {
 
     /// TODO
     #[allow(dead_code)]
-    pub async fn get_account(
+    pub fn get_account(
         &mut self,
         _budget_id: &str,
         _account_id: &str,
@@ -135,26 +134,26 @@ impl YnabApi {
     }
 
     #[allow(dead_code)]
-    pub async fn list_categories(
+    pub fn list_categories(
         &mut self,
         budget_id: &str,
     ) -> ApiResult<Data<CategoriesResponse>> {
         let endp = &format!("/budgets/{budget_id}/categories");
-        Ok(serde_json::from_str(&self.get(endp).await?)?)
+        Ok(serde_json::from_str(&self.get(endp)?)?)
     }
 
     #[allow(dead_code)]
-    pub async fn get_category_transactions(
+    pub fn get_category_transactions(
         &mut self,
         budget_id: &str,
         category_id: &str,
     ) -> ApiResult<Data<HybridTransactionsResponse>> {
         let endp = &format!("/budgets/{budget_id}/categories/{category_id}/transactions");
-        Ok(serde_json::from_str(&self.get(endp).await?)?)
+        Ok(serde_json::from_str(&self.get(endp)?)?)
     }
 
     //TODO: Implement since_date, and trans_type
-    pub async fn get_budget_transactions(
+    pub fn get_budget_transactions(
         &mut self,
         budget_id: &str,
         _since_date: Option<DateTime<Local>>,
@@ -166,9 +165,8 @@ impl YnabApi {
         } else {
             format!("/budgets/{budget_id}/transactions")
         };
-        dbg!(&endp);
 
-        Ok(serde_json::from_str(&self.get(endp).await?)?)
+        Ok(serde_json::from_str(&self.get(endp)?)?)
     }
 }
 

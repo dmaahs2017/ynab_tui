@@ -25,19 +25,18 @@ impl DataGateway {
         Self { api, engine }
     }
 
-    pub async fn refresh_db(&mut self) {
-        self.load_budgets().await;
+    pub fn refresh_db(&mut self) {
+        self.load_budgets();
         let budgets = self.get_budgets();
         for b in budgets {
-            self.load_transactions(&b.id).await
+            self.load_transactions(&b.id)
         }
     }
 
-    async fn load_budgets(&mut self) {
+    fn load_budgets(&mut self) {
         let budget_list = self
             .api
             .list_budgets(false)
-            .await
             .expect("Failed to get budgets from api");
         for b in budget_list.data.budgets {
             let b = models::Budget {
@@ -61,11 +60,10 @@ impl DataGateway {
         self.engine.get_all_budgets()
     }
 
-    async fn load_transactions(&mut self, budget_id: &str) {
+    fn load_transactions(&mut self, budget_id: &str) {
         let transactions = self
             .api
             .get_budget_transactions(budget_id, None, None, None)
-            .await
             .expect("Failed to get transactions from api");
 
         for t in transactions.data.transactions {

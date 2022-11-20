@@ -76,12 +76,10 @@ impl App {
     }
 }
 
-#[tokio::main]
-async fn main() -> std::io::Result<()> {
-    use ynab_tui::data_layer::DataGateway;
+fn main() -> std::io::Result<()> {
+    //use ynab_tui::data_layer::DataGateway;
     dotenvy::dotenv().unwrap();
-    //ynab_tui::reset_db();
-
-    DataGateway::new().refresh_db().await;
+    ynab_tui::reset_db();
+    //DataGateway::new().refresh_db().await;
     App::new().run()
 }
