@@ -21,6 +21,7 @@ impl TableWidget for Vec<Transaction> {
         let table: Vec<Row> = self.iter().map(|transaction| {
             Row::new(vec![
                 Cell::from(transaction.date.clone()),
+                Cell::from(transaction.payee_name.clone().unwrap_or_default()),
                 Cell::from(format!("${:.2}", milicent_to_dollars(transaction.amount))),
                 Cell::from(transaction.memo.clone().unwrap_or_default())
             ])
@@ -28,9 +29,9 @@ impl TableWidget for Vec<Transaction> {
         }).collect();
 
         Table::new(table)
-            .header(Row::new(vec!["Date", "Amount", "Memo"]))
+            .header(Row::new(vec!["Date", "Payee", "Amount", "Memo"]))
             .block(Block::default().title("Transactions").borders(Borders::ALL))
-            .widths(&[Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)])
+            .widths(&[Constraint::Percentage(25), Constraint::Percentage(25), Constraint::Percentage(25),Constraint::Percentage(25)])
     }
 }
 
