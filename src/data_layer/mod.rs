@@ -86,8 +86,10 @@ impl DataGateway {
                 payee_name: t.payee_name,
                 category_name: t.category_name,
             };
-            if let Some(_) = self.engine.get_transaction(&t.id) {
-                self.engine.update_transaction(t)
+            if let Some(db_transaction) = self.engine.get_transaction(&t.id) {
+                if db_transaction != t{
+                    self.engine.update_transaction(t)
+                }
             } else {
                 self.engine.insert_transaction(t)
             }

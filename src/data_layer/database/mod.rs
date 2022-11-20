@@ -226,7 +226,7 @@ impl QueryEngine {
                 (":payee_name", transaction.payee_name.into_value()),
                 (":category_name", transaction.category_name.into()),
             ])
-            .expect("Insert failed");
+            .expect("Bind failed");
         statement.next().expect("Insert failed");
     }
 }

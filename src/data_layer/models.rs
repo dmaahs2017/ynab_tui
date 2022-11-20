@@ -8,6 +8,7 @@ pub struct Budget {
     pub date_format: String,
 }
 
+#[derive(PartialEq, Eq)]
 pub struct Transaction {
     pub id: String,
     pub budget_id: String,

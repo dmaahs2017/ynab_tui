@@ -87,6 +87,7 @@ impl YnabApi {
     }
 
     /// TODO
+    #[allow(dead_code)]
     pub async fn get_budget(
         &mut self,
         _budget_id: &str,
@@ -96,11 +97,13 @@ impl YnabApi {
     }
 
     /// TODO
+    #[allow(dead_code)]
     pub async fn budget_settings(&mut self, _budget_id: &str) -> ApiResult<Data<()>> {
         todo!("GET /budgets/{_budget_id}/settings")
     }
 
     /// TODO
+    #[allow(dead_code)]
     pub async fn list_accounts(
         &mut self,
         _budget_id: &str,
@@ -110,6 +113,7 @@ impl YnabApi {
     }
 
     /// TODO
+    #[allow(dead_code)]
     pub async fn create_account(
         &mut self,
         _budget_id: &str,
@@ -121,6 +125,7 @@ impl YnabApi {
     }
 
     /// TODO
+    #[allow(dead_code)]
     pub async fn get_account(
         &mut self,
         _budget_id: &str,
@@ -129,6 +134,7 @@ impl YnabApi {
         todo!("GET /budgets/{_budget_id}/accounts/{_account_id}")
     }
 
+    #[allow(dead_code)]
     pub async fn list_categories(
         &mut self,
         budget_id: &str,
@@ -137,6 +143,7 @@ impl YnabApi {
         Ok(serde_json::from_str(&self.get(endp).await?)?)
     }
 
+    #[allow(dead_code)]
     pub async fn get_category_transactions(
         &mut self,
         budget_id: &str,

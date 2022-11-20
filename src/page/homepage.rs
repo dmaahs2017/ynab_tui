@@ -6,6 +6,7 @@ use tui::style::*;
 use tui::text::*;
 use tui::widgets::*;
 
+use crate::util::*;
 use crate::components::StatefulList;
 use crate::data_layer::models::*;
 use crate::data_layer::DataGateway;
@@ -14,6 +15,26 @@ pub struct Homepage {
     budgets: StatefulList<Budget>,
     transactions: Vec<Transaction>,
 }
+
+impl TableWidget for Vec<Transaction> {
+    fn to_table(&self) -> Table {
+        let table: Vec<Row> = self.iter().map(|transaction| {
+            Row::new(vec![
+                Cell::from(transaction.date.clone()),
+                Cell::from(format!("${:.2}", milicent_to_dollars(transaction.amount))),
+                Cell::from(transaction.memo.clone().unwrap_or_default())
+            ])
+            
+        }).collect();
+
+        Table::new(table)
+            .header(Row::new(vec!["Date", "Amount", "Memo"]))
+            .block(Block::default().title("Transactions").borders(Borders::ALL))
+            .widths(&[Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)])
+    }
+}
+
+
 
 impl Homepage {
     pub fn new() -> Self {
@@ -46,28 +67,7 @@ impl Page for Homepage {
             )
             .highlight_symbol(">> ");
 
-        let transaction_items = self
-            .transactions
-            .iter()
-            .map(|t| {
-                let lines = vec![
-                    t.date.clone().into(),
-                    t.payee_name.into_spans(),
-                    t.memo.into_spans(),
-                    t.amount.to_string().into(),
-                ];
-                ListItem::new(lines).style(Style::default().fg(Color::Black).bg(Color::White))
-            })
-            .collect::<Vec<_>>();
-
-        let transaction_list = List::new(transaction_items)
-            .block(Block::default().borders(Borders::ALL).title("Budgets"))
-            .highlight_style(
-                Style::default()
-                    .bg(Color::LightGreen)
-                    .add_modifier(Modifier::BOLD),
-            )
-            .highlight_symbol(">> ");
+        let transactions_table = self.transactions.to_table();
 
         let chunks = Layout::default()
             .constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
@@ -76,7 +76,7 @@ impl Page for Homepage {
 
         if self.transactions.len() > 0 {
             frame.render_stateful_widget(budget_list, chunks[0], &mut self.budgets.state);
-            frame.render_widget(transaction_list, chunks[1]);
+            frame.render_widget(transactions_table, chunks[1]);
         } else {
             frame.render_stateful_widget(budget_list, area, &mut self.budgets.state);
         }

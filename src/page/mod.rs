@@ -9,6 +9,10 @@ use tui::layout::Rect;
 use tui::text::Spans;
 use tui::Frame;
 
+trait TableWidget {
+    fn to_table(&self) -> tui::widgets::Table;
+}
+
 trait IntoSpans {
     fn into_spans(&self) -> Spans;
 }
