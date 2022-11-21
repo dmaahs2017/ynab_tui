@@ -15,6 +15,8 @@ use crate::data_layer::DataGateway;
 pub struct Homepage {
     budgets: StatefulList<Budget>,
     transactions: Vec<Transaction>,
+    search: String,
+    input_mode: InputMode,
 }
 
 impl TableWidget for Vec<Transaction> {
@@ -44,13 +46,33 @@ impl Homepage {
         Self {
             budgets: StatefulList::with_items(gateway.get_budgets()),
             transactions: vec![],
+            input_mode: InputMode::BudgetSelect,
+            search: String::new(),
         }
+    }
+
+    fn current_budget(&self) -> Option<&Budget> {
+        self.budgets.state.selected().map(|i| &self.budgets.items[i])
+    }
+
+    fn select_prev_budget(&mut self) {
+        if self.budgets.items.is_empty() {
+            return;
+        }
+        let prev = self.budgets.previous();
+    }
+
+    fn select_next_budget(&mut self) {
+        if self.budgets.items.is_empty() {
+            return;
+        }
+        let prev = self.budgets.next();
     }
 }
 
 enum InputMode {
     BudgetSelect,
-    TransactionFilter,
+    EditSearch,
 }
 
 impl Page for Homepage {
@@ -77,14 +99,29 @@ impl Page for Homepage {
 
         let transactions_table = self.transactions.to_table();
 
+        let search_bar = Paragraph::new(self.search.clone())
+            .block(Block::default()
+               .borders(Borders::ALL).title("SQL Filter")).wrap(Wrap {trim: false});
+
         let chunks = Layout::default()
             .constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
             .direction(Direction::Horizontal)
             .split(area);
+        let left_area = chunks[0];
+        let right_area = chunks[1];
+
+        let chunks = Layout::default()
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .direction(Direction::Vertical)
+            .split(left_area);
+        let top_left = chunks[0];
+        let bottom_left = chunks[1];
+
 
         if self.transactions.len() > 0 {
-            frame.render_stateful_widget(budget_list, chunks[0], &mut self.budgets.state);
-            frame.render_widget(transactions_table, chunks[1]);
+            frame.render_stateful_widget(budget_list, bottom_left, &mut self.budgets.state);
+            frame.render_widget(search_bar, top_left);
+            frame.render_widget(transactions_table, right_area);
         } else {
             frame.render_stateful_widget(budget_list, area, &mut self.budgets.state);
         }
@@ -96,6 +133,24 @@ impl Page for Homepage {
         }
 
         if let Event::Key(key) = read()? {
+            if let InputMode::EditSearch = self.input_mode {
+                match key.code {
+                    KeyCode::Char(c) => {
+                        self.search.push(c);
+                    },
+                    KeyCode::Backspace => { self.search.pop(); },
+                    KeyCode::Enter => { 
+                        self.input_mode = InputMode::BudgetSelect;
+                        if let Some(b) = self.current_budget() {
+                            let dg = DataGateway::new();
+                            self.transactions = dg.get_transactions_where(&b.id, &self.search);
+                        }
+                    },
+                    _ => {},
+                }
+                return Ok(Message::Noop);
+            }
+
             match key.code {
                 KeyCode::Char('q') => return Ok(Message::Quit),
                 KeyCode::Char('b') => return Ok(Message::Back),
@@ -107,25 +162,26 @@ impl Page for Homepage {
                     return Ok(Message::Noop);
                 }
                 KeyCode::Char('k') => {
-                    if self.budgets.items.is_empty() {
-                        return Ok(Message::Noop);
+                    self.select_prev_budget();
+                    if let Some(b) = self.current_budget() {
+                        let dg = DataGateway::new();
+                        self.transactions = dg.get_transactions(&b.id);
                     }
-
-                    let dg = DataGateway::new();
-                    let i = self.budgets.previous();
-                    let b_id = &self.budgets.items[i].id;
-                    self.transactions = dg.get_transactions(b_id);
                     return Ok(Message::Noop);
                 }
                 KeyCode::Char('j') => {
-                    if self.budgets.items.is_empty() {
-                        return Ok(Message::Noop);
+                    self.select_next_budget();
+                    if let Some(b) = self.current_budget() {
+                        let dg = DataGateway::new();
+                        self.transactions = dg.get_transactions(&b.id);
                     }
-
-                    let dg = DataGateway::new();
-                    let i = self.budgets.next();
-                    let b_id = &self.budgets.items[i].id;
-                    self.transactions = dg.get_transactions(b_id);
+                    return Ok(Message::Noop);
+                }
+                KeyCode::Char('/') => {
+                    match self.input_mode {
+                        InputMode::BudgetSelect => self.input_mode = InputMode::EditSearch,
+                        _ => (),
+                    }
                     return Ok(Message::Noop);
                 }
                 KeyCode::Esc => {

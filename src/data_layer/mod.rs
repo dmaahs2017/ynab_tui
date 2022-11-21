@@ -97,4 +97,11 @@ impl DataGateway {
     pub fn get_transactions(&self, budget_id: &str) -> Vec<Transaction> {
         self.engine.get_transactions(budget_id)
     }
+
+    pub fn get_transactions_where(&self, budget_id: &str, query: &str) -> Vec<Transaction> {
+        if query.is_empty() {
+            return self.engine.get_transactions_where(budget_id, "0 = 0")
+        }
+        self.engine.get_transactions_where(budget_id, query)
+    }
 }

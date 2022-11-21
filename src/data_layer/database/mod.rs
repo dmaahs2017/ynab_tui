@@ -167,6 +167,37 @@ impl QueryEngine {
         return None;
     }
 
+    pub fn get_transactions_where(&self, budget_id: &str, search_query: &str) -> Vec<Transaction> {
+        let query = format!(include_str!("queries/get_transactions_where.sql"), search_query);
+        let mut statement = self.conn.prepare(query).expect("Prepared select failed");
+        statement
+            .bind_iter([
+                (":budget_id", budget_id)
+            ]).expect("Failed to bind prepared statement");
+
+        let mut output = vec![];
+        while let Ok(State::Row) = statement.next() {
+            output.push(Transaction {
+                id: statement.read("id").unwrap(),
+                budget_id: statement.read("budget_id").unwrap(),
+                date: statement.read("date").unwrap(),
+                amount: statement.read("amount").unwrap(),
+                memo: statement.read("memo").unwrap(),
+                account_id: statement.read("account_id").unwrap(),
+                payee_id: statement.read("payee_id").unwrap(),
+                category_id: statement.read("category_id").unwrap(),
+                transfer_account_id: statement.read("transfer_account_id").unwrap(),
+                transfer_transaction_id: statement.read("transfer_transaction_id").unwrap(),
+                matched_transaction_id: statement.read("matched_transaction_id").unwrap(),
+                deleted: statement.read::<i64, _>("deleted").unwrap() != 0,
+                account_name: statement.read("account_name").unwrap(),
+                payee_name: statement.read("payee_name").unwrap(),
+                category_name: statement.read("category_name").unwrap(),
+            });
+        }
+        output
+    }
+
     pub fn get_transactions(&self, budget_id: &str) -> Vec<Transaction> {
         let query = include_str!("queries/get_all_transactions.sql");
         let mut statement = self.conn.prepare(query).expect("Insert failed");
