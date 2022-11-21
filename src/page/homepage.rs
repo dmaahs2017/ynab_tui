@@ -127,6 +127,12 @@ impl Page for Homepage {
                     self.budgets.unselect();
                     self.transactions.clear();
                     return Ok(Message::Noop);
+                },
+                KeyCode::Enter => {
+                    if let Some(selected_index) = self.budgets.state.selected() {
+                        let budget = self.budgets.items[selected_index].clone();
+                        return Ok(Message::NewPage(Box::new(BudgetPage::new(budget))))
+                    };
                 }
                 _ => return Ok(Message::Noop),
             }

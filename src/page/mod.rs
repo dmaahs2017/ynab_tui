@@ -1,7 +1,7 @@
 mod homepage;
-mod page2;
+mod budget_page;
 pub use homepage::*;
-pub use page2::*;
+pub use budget_page::*;
 
 use std::io;
 use tui::backend::CrosstermBackend;

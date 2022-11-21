@@ -3,19 +3,21 @@ use crossterm::event::*;
 use std::io;
 use tui::widgets::*;
 
-pub struct Page2 {
-    number: usize,
+use crate::data_layer::models::*;
+
+pub struct BudgetPage {
+    budget: Budget,
 }
 
-impl Page2 {
-    pub fn new(number: usize) -> Self {
-        Self { number }
+impl BudgetPage {
+    pub fn new(budget: Budget) -> Self {
+        Self { budget }
     }
 }
 
-impl Page for Page2 {
+impl Page for BudgetPage {
     fn ui(&mut self, frame: &mut Frame<CrosstermBackend<io::Stdout>>, area: Rect) {
-        let p = Paragraph::new(self.number.to_string())
+        let p = Paragraph::new(self.budget.name.to_string())
             .block(Block::default().title("Page 2").borders(Borders::ALL));
         frame.render_widget(p, area);
     }
@@ -27,10 +29,6 @@ impl Page for Page2 {
                 KeyCode::Char('b') => return Ok(Message::Back),
                 KeyCode::Char('n') => {}
                 KeyCode::Char('f') => return Ok(Message::Forward),
-                KeyCode::Char('+') => {
-                    self.number += 1;
-                    return Ok(Message::Noop);
-                }
                 _ => return Ok(Message::Noop),
             }
         }
@@ -39,6 +37,6 @@ impl Page for Page2 {
     }
 
     fn name(&self) -> String {
-        String::from("Counter Page")
+        self.budget.name.clone()
     }
 }

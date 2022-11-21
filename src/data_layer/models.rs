@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Budget {
     pub id: String,
     pub name: String,
@@ -8,7 +8,7 @@ pub struct Budget {
     pub date_format: String,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct Transaction {
     pub id: String,
     pub budget_id: String,
