@@ -63,13 +63,13 @@ pub struct HybridTransaction {
 pub struct HybridTransactionsResponse {
     pub transactions: Vec<HybridTransaction>,
 }
-        //"category_id": null,
-        //"flag_color": null,
-        //"import_id": null,
-        //"matched_transaction_id": null,
-        //"memo": null,
-        //"transfer_account_id": null,
-        //"transfer_transaction_id": null,
+//"category_id": null,
+//"flag_color": null,
+//"import_id": null,
+//"matched_transaction_id": null,
+//"memo": null,
+//"transfer_account_id": null,
+//"transfer_transaction_id": null,
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TransactionDetail {
     pub id: String,
@@ -81,7 +81,7 @@ pub struct TransactionDetail {
     pub flag_color: Option<FlagColor>,
     pub account_id: String,                  //Unique
     pub payee_id: Option<String>,            //Unique
-    pub category_id: Option<String>,                 //Unique
+    pub category_id: Option<String>,         //Unique
     pub transfer_account_id: Option<String>, //Unique
     pub transfer_transaction_id: Option<String>,
     pub matched_transaction_id: Option<String>,

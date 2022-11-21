@@ -1,6 +1,6 @@
 use super::models::*;
-use sqlite::{self, Connection, State, Value};
 use sqlite::Result;
+use sqlite::{self, Connection, State, Value};
 
 trait IntoValue {
     fn into_value(self) -> Value;
@@ -104,38 +104,36 @@ impl QueryEngine {
         statement.next().expect("Insert failed");
     }
 
-    pub fn insert_transaction(&self, transaction: Transaction) {
+    pub fn insert_transaction(&self, transaction: Transaction) -> Result<()> {
         let query = include_str!("queries/insert_transaction.sql");
-        let mut statement = self.conn.prepare(query).expect("Insert failed");
-        statement
-            .bind_iter::<_, (_, Value)>([
-                (":id", transaction.id.into()),
-                (":budget_id", transaction.budget_id.into()),
-                (":date", transaction.date.into()),
-                (":amount", transaction.amount.into()),
-                (":memo", transaction.memo.into_value()),
-                (":account_id", transaction.account_id.into()),
-                (":payee_id", transaction.payee_id.into_value()),
-                (":category_id", transaction.category_id.into_value()),
-                (
-                    ":transfer_account_id",
-                    transaction.transfer_account_id.into_value(),
-                ),
-                (
-                    ":transfer_transaction_id",
-                    transaction.transfer_transaction_id.into_value(),
-                ),
-                (
-                    ":matched_transaction_id",
-                    transaction.matched_transaction_id.into_value(),
-                ),
-                (":deleted", transaction.deleted.into_value()),
-                (":account_name", transaction.account_name.into()),
-                (":payee_name", transaction.payee_name.into_value()),
-                (":category_name", transaction.category_name.into()),
-            ])
-            .expect("Insert failed");
-        statement.next().expect("Insert failed");
+        let mut statement = self.conn.prepare(query)?;
+        statement.bind_iter::<_, (_, Value)>([
+            (":id", transaction.id.into()),
+            (":budget_id", transaction.budget_id.into()),
+            (":date", transaction.date.into()),
+            (":amount", transaction.amount.into()),
+            (":memo", transaction.memo.into_value()),
+            (":account_id", transaction.account_id.into()),
+            (":payee_id", transaction.payee_id.into_value()),
+            (":category_id", transaction.category_id.into_value()),
+            (
+                ":transfer_account_id",
+                transaction.transfer_account_id.into_value(),
+            ),
+            (
+                ":transfer_transaction_id",
+                transaction.transfer_transaction_id.into_value(),
+            ),
+            (
+                ":matched_transaction_id",
+                transaction.matched_transaction_id.into_value(),
+            ),
+            (":account_name", transaction.account_name.into()),
+            (":payee_name", transaction.payee_name.into_value()),
+            (":category_name", transaction.category_name.into()),
+        ])?;
+        statement.next()?;
+        Ok(())
     }
 
     pub fn get_transaction(&self, transaction_id: &str) -> Option<Transaction> {
@@ -158,7 +156,6 @@ impl QueryEngine {
                 transfer_account_id: statement.read("transfer_account_id").unwrap(),
                 transfer_transaction_id: statement.read("transfer_transaction_id").unwrap(),
                 matched_transaction_id: statement.read("matched_transaction_id").unwrap(),
-                deleted: statement.read::<i64, _>("deleted").unwrap() != 0,
                 account_name: statement.read("account_name").unwrap(),
                 payee_name: statement.read("payee_name").unwrap(),
                 category_name: statement.read("category_name").unwrap(),
@@ -167,15 +164,18 @@ impl QueryEngine {
         return None;
     }
 
-    pub fn get_transactions_where(&self, budget_id: &str, search_query: &str) -> Result<Vec<Transaction>> {
-        let query = format!(include_str!("queries/get_transactions_where.sql"), search_query);
+    pub fn get_transactions_where(
+        &self,
+        budget_id: &str,
+        search_query: &str,
+    ) -> Result<Vec<Transaction>> {
+        let query = format!(
+            include_str!("queries/get_transactions_where.sql"),
+            search_query
+        );
         let mut statement = self.conn.prepare(query)?;
 
-
-        statement
-            .bind_iter([
-                (":budget_id", budget_id)
-            ])?;
+        statement.bind_iter([(":budget_id", budget_id)])?;
 
         let mut output = vec![];
         while let Ok(State::Row) = statement.next() {
@@ -191,7 +191,6 @@ impl QueryEngine {
                 transfer_account_id: statement.read("transfer_account_id").unwrap(),
                 transfer_transaction_id: statement.read("transfer_transaction_id").unwrap(),
                 matched_transaction_id: statement.read("matched_transaction_id").unwrap(),
-                deleted: statement.read::<i64, _>("deleted").unwrap() != 0,
                 account_name: statement.read("account_name").unwrap(),
                 payee_name: statement.read("payee_name").unwrap(),
                 category_name: statement.read("category_name").unwrap(),
@@ -221,7 +220,6 @@ impl QueryEngine {
                 transfer_account_id: statement.read("transfer_account_id").unwrap(),
                 transfer_transaction_id: statement.read("transfer_transaction_id").unwrap(),
                 matched_transaction_id: statement.read("matched_transaction_id").unwrap(),
-                deleted: statement.read::<i64, _>("deleted").unwrap() != 0,
                 account_name: statement.read("account_name").unwrap(),
                 payee_name: statement.read("payee_name").unwrap(),
                 category_name: statement.read("category_name").unwrap(),
@@ -230,37 +228,35 @@ impl QueryEngine {
         output
     }
 
-    pub fn update_transaction(&self, transaction: Transaction) {
+    pub fn update_transaction(&self, transaction: Transaction) -> Result<()> {
         let query = include_str!("queries/update_transaction.sql");
-        let mut statement = self.conn.prepare(query).expect("Insert failed");
-        statement
-            .bind_iter([
-                (":id", transaction.id.into()),
-                (":date", transaction.date.into()),
-                (":amount", transaction.amount.into()),
-                (":memo", transaction.memo.into_value()),
-                (":account_id", transaction.account_id.into()),
-                (":payee_id", transaction.payee_id.into_value()),
-                (":category_id", transaction.category_id.into_value()),
-                (
-                    ":transfer_account_id",
-                    transaction.transfer_account_id.into_value(),
-                ),
-                (
-                    ":transfer_transaction_id",
-                    transaction.transfer_transaction_id.into_value(),
-                ),
-                (
-                    ":matched_transaction_id",
-                    transaction.matched_transaction_id.into_value(),
-                ),
-                (":deleted", transaction.deleted.into_value()),
-                (":account_name", transaction.account_name.into()),
-                (":payee_name", transaction.payee_name.into_value()),
-                (":category_name", transaction.category_name.into()),
-            ])
-            .expect("Bind failed");
-        statement.next().expect("Insert failed");
+        let mut statement = self.conn.prepare(query)?;
+        statement.bind_iter([
+            (":id", transaction.id.into()),
+            (":date", transaction.date.into()),
+            (":amount", transaction.amount.into()),
+            (":memo", transaction.memo.into_value()),
+            (":account_id", transaction.account_id.into()),
+            (":payee_id", transaction.payee_id.into_value()),
+            (":category_id", transaction.category_id.into_value()),
+            (
+                ":transfer_account_id",
+                transaction.transfer_account_id.into_value(),
+            ),
+            (
+                ":transfer_transaction_id",
+                transaction.transfer_transaction_id.into_value(),
+            ),
+            (
+                ":matched_transaction_id",
+                transaction.matched_transaction_id.into_value(),
+            ),
+            (":account_name", transaction.account_name.into()),
+            (":payee_name", transaction.payee_name.into_value()),
+            (":category_name", transaction.category_name.into()),
+        ])?;
+        statement.next()?;
+        Ok(())
     }
 
     pub fn remigrate(&self) {

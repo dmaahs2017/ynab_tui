@@ -5,7 +5,6 @@ use crossterm::event::*;
 use std::io;
 use tui::widgets::*;
 
-
 pub struct BudgetPage {
     budget: Budget,
 }

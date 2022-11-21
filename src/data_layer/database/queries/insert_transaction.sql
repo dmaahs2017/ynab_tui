@@ -10,7 +10,6 @@ INSERT INTO transactions (
     transfer_account_id,
     transfer_transaction_id,
     matched_transaction_id,
-    deleted,
     account_name,
     payee_name,
     category_name
@@ -27,7 +26,6 @@ INSERT INTO transactions (
     :transfer_account_id,
     :transfer_transaction_id,
     :matched_transaction_id,
-    :deleted,
     :account_name,
     :payee_name,
     :category_name

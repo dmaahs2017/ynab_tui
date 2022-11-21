@@ -2,10 +2,10 @@ mod response_models;
 use response_models::*;
 
 use chrono::{DateTime, Duration, Local};
-use reqwest::{header, header::HeaderMap};
 use reqwest::blocking::Client;
+use reqwest::{header, header::HeaderMap};
 use serde::{Deserialize, Serialize};
-use std::{fs, io, collections::HashMap};
+use std::{collections::HashMap, fs, io};
 
 type ApiResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -28,18 +28,36 @@ impl YnabApi {
             .map(|f| serde_json::from_reader(io::BufReader::new(f)).unwrap_or_default())
             .unwrap_or({
                 let mut map = HashMap::new();
-                map.insert("created".to_string(), CacheEntry { datetime: Local::now(), response_json: String::new() });
+                map.insert(
+                    "created".to_string(),
+                    CacheEntry {
+                        datetime: Local::now(),
+                        response_json: String::new(),
+                    },
+                );
                 map
             });
 
         if let Some(entry) = cache.get("created") {
             if Local::now() - entry.datetime >= Duration::days(1) {
                 cache.clear();
-                cache.insert("created".to_string(), CacheEntry { datetime: Local::now(), response_json: String::new() });
+                cache.insert(
+                    "created".to_string(),
+                    CacheEntry {
+                        datetime: Local::now(),
+                        response_json: String::new(),
+                    },
+                );
             }
         } else {
             cache.clear();
-            cache.insert("created".to_string(), CacheEntry { datetime: Local::now(), response_json: String::new() });
+            cache.insert(
+                "created".to_string(),
+                CacheEntry {
+                    datetime: Local::now(),
+                    response_json: String::new(),
+                },
+            );
         }
 
         Self {
@@ -136,19 +154,12 @@ impl YnabApi {
 
     /// TODO
     #[allow(dead_code)]
-    pub fn get_account(
-        &mut self,
-        _budget_id: &str,
-        _account_id: &str,
-    ) -> ApiResult<Data<()>> {
+    pub fn get_account(&mut self, _budget_id: &str, _account_id: &str) -> ApiResult<Data<()>> {
         todo!("GET /budgets/{_budget_id}/accounts/{_account_id}")
     }
 
     #[allow(dead_code)]
-    pub fn list_categories(
-        &mut self,
-        budget_id: &str,
-    ) -> ApiResult<Data<CategoriesResponse>> {
+    pub fn list_categories(&mut self, budget_id: &str) -> ApiResult<Data<CategoriesResponse>> {
         let endp = &format!("/budgets/{budget_id}/categories");
         Ok(serde_json::from_str(&self.get(endp)?)?)
     }
