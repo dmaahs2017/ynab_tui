@@ -6,6 +6,7 @@ pub mod models;
 use database::QueryEngine;
 use models::*;
 use ynab_api::YnabApi;
+use sqlite::Result;
 
 use chrono::Duration;
 use std::env;
@@ -98,7 +99,7 @@ impl DataGateway {
         self.engine.get_transactions(budget_id)
     }
 
-    pub fn get_transactions_where(&self, budget_id: &str, query: &str) -> Vec<Transaction> {
+    pub fn get_transactions_where(&self, budget_id: &str, query: &str) -> Result<Vec<Transaction>> {
         if query.is_empty() {
             return self.engine.get_transactions_where(budget_id, "0 = 0")
         }

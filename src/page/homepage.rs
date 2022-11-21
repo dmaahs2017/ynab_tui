@@ -16,7 +16,7 @@ pub struct Homepage {
     budgets: StatefulList<Budget>,
     transactions: Vec<Transaction>,
     search: String,
-    input_mode: InputMode,
+    page_state: PageState,
 }
 
 impl TableWidget for Vec<Transaction> {
@@ -46,7 +46,7 @@ impl Homepage {
         Self {
             budgets: StatefulList::with_items(gateway.get_budgets()),
             transactions: vec![],
-            input_mode: InputMode::BudgetSelect,
+            page_state: PageState::BudgetSelect,
             search: String::new(),
         }
     }
@@ -70,9 +70,10 @@ impl Homepage {
     }
 }
 
-enum InputMode {
+enum PageState {
     BudgetSelect,
     EditSearch,
+    ErrState(String),
 }
 
 impl Page for Homepage {
@@ -103,6 +104,7 @@ impl Page for Homepage {
             .block(Block::default()
                .borders(Borders::ALL).title("SQL Filter")).wrap(Wrap {trim: false});
 
+
         let chunks = Layout::default()
             .constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
             .direction(Direction::Horizontal)
@@ -125,6 +127,15 @@ impl Page for Homepage {
         } else {
             frame.render_stateful_widget(budget_list, area, &mut self.budgets.state);
         }
+
+        if let PageState::ErrState(message) = &self.page_state {
+            let err_popup = Paragraph::new(message.clone()).wrap(Wrap { trim: false })
+                .block(Block::default().borders(Borders::ALL).title("Error")).alignment(Alignment::Center);
+
+            let popup_area = centered_rect(30, 30, area);
+            frame.render_widget(Clear, popup_area);
+            frame.render_widget(err_popup, popup_area);
+        }
     }
 
     fn update(&mut self) -> io::Result<Message> {
@@ -133,21 +144,31 @@ impl Page for Homepage {
         }
 
         if let Event::Key(key) = read()? {
-            if let InputMode::EditSearch = self.input_mode {
+            if let PageState::EditSearch = self.page_state {
                 match key.code {
                     KeyCode::Char(c) => {
                         self.search.push(c);
                     },
                     KeyCode::Backspace => { self.search.pop(); },
                     KeyCode::Enter => { 
-                        self.input_mode = InputMode::BudgetSelect;
+                        self.page_state = PageState::BudgetSelect;
                         if let Some(b) = self.current_budget() {
                             let dg = DataGateway::new();
-                            self.transactions = dg.get_transactions_where(&b.id, &self.search);
+                            match dg.get_transactions_where(&b.id, &self.search) {
+                                Ok(ts) => self.transactions = ts,
+                                Err(e) => {
+                                    self.page_state = PageState::ErrState(e.message.unwrap_or_default());
+                                }
+                            }
                         }
                     },
                     _ => {},
                 }
+                return Ok(Message::Noop);
+            }
+
+            if let PageState::ErrState(_) = self.page_state {
+                self.page_state = PageState::EditSearch;
                 return Ok(Message::Noop);
             }
 
@@ -178,8 +199,8 @@ impl Page for Homepage {
                     return Ok(Message::Noop);
                 }
                 KeyCode::Char('/') => {
-                    match self.input_mode {
-                        InputMode::BudgetSelect => self.input_mode = InputMode::EditSearch,
+                    match self.page_state {
+                        PageState::BudgetSelect => self.page_state = PageState::EditSearch,
                         _ => (),
                     }
                     return Ok(Message::Noop);

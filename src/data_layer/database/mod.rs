@@ -1,6 +1,7 @@
 use super::models::*;
 use sqlite::{self, Connection, State, Value};
 use std::env;
+use sqlite::Result;
 
 trait IntoValue {
     fn into_value(self) -> Value;
@@ -167,13 +168,15 @@ impl QueryEngine {
         return None;
     }
 
-    pub fn get_transactions_where(&self, budget_id: &str, search_query: &str) -> Vec<Transaction> {
+    pub fn get_transactions_where(&self, budget_id: &str, search_query: &str) -> Result<Vec<Transaction>> {
         let query = format!(include_str!("queries/get_transactions_where.sql"), search_query);
-        let mut statement = self.conn.prepare(query).expect("Prepared select failed");
+        let mut statement = self.conn.prepare(query)?;
+
+
         statement
             .bind_iter([
                 (":budget_id", budget_id)
-            ]).expect("Failed to bind prepared statement");
+            ])?;
 
         let mut output = vec![];
         while let Ok(State::Row) = statement.next() {
@@ -195,7 +198,7 @@ impl QueryEngine {
                 category_name: statement.read("category_name").unwrap(),
             });
         }
-        output
+        Ok(output)
     }
 
     pub fn get_transactions(&self, budget_id: &str) -> Vec<Transaction> {
