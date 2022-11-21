@@ -1,16 +1,9 @@
 use super::*;
 use crossterm::event::*;
-use std::io;
-use tui::layout::*;
-use tui::style::*;
-use tui::text::*;
-use tui::widgets::*;
-use std::time::Duration;
 
-use crate::util::*;
-use crate::components::StatefulList;
-use crate::data_layer::models::*;
-use crate::data_layer::DataGateway;
+use std::{io, time::Duration};
+use tui::{layout::*, style::*, text::*, widgets::*};
+use crate::{util::*, components::*, data_layer::*};
 
 pub struct Homepage {
     budgets: StatefulList<Budget>,

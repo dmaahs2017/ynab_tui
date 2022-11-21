@@ -5,8 +5,7 @@ use chrono::{DateTime, Duration, Local};
 use reqwest::{header, header::HeaderMap};
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::{fs, io};
+use std::{fs, io, collections::HashMap};
 
 type ApiResult<T> = Result<T, Box<dyn std::error::Error>>;
 

@@ -1,6 +1,5 @@
 use super::models::*;
 use sqlite::{self, Connection, State, Value};
-use std::env;
 use sqlite::Result;
 
 trait IntoValue {
@@ -263,17 +262,16 @@ impl QueryEngine {
             .expect("Bind failed");
         statement.next().expect("Insert failed");
     }
+
+    pub fn remigrate(&self) {
+        let down_query = include_str!("migrations/down.sql");
+        let up_query = include_str!("migrations/up.sql");
+        self.conn.execute(down_query).expect("Drop all failed");
+        self.conn.execute(up_query).expect("Drop all failed");
+    }
 }
 
 fn setup(conn: &Connection) {
     let setup_query = include_str!("migrations/up.sql");
     conn.execute(setup_query).expect("Setup query failed");
-}
-
-pub fn tear_down_db() {
-    let database_url = env::var("DATABASE_URL").expect("Database url environment variable not set");
-    let conn = sqlite::open(database_url).expect("Connection opened");
-    let down_query = include_str!("migrations/down.sql");
-    println!("{}", down_query);
-    conn.execute(down_query).expect("Setup query failed");
 }

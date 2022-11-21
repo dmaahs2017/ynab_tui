@@ -1,9 +1,10 @@
 use super::*;
+use crate::data_layer::models::*;
+
 use crossterm::event::*;
 use std::io;
 use tui::widgets::*;
 
-use crate::data_layer::models::*;
 
 pub struct BudgetPage {
     budget: Budget,

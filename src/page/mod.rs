@@ -4,10 +4,7 @@ pub use homepage::*;
 pub use budget_page::*;
 
 use std::io;
-use tui::backend::CrosstermBackend;
-use tui::layout::Rect;
-use tui::text::Spans;
-use tui::Frame;
+use tui::{backend::CrosstermBackend, layout::Rect, text::Spans, Frame};
 
 trait TableWidget {
     fn to_table(&self) -> tui::widgets::Table;

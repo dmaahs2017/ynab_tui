@@ -1,13 +1,12 @@
 mod database;
 mod ynab_api;
-pub use database::tear_down_db;
 pub mod models;
+pub use models::*;
 
 use database::QueryEngine;
-use models::*;
 use ynab_api::YnabApi;
-use sqlite::Result;
 
+use sqlite::Result;
 use chrono::Duration;
 use std::env;
 
@@ -20,13 +19,14 @@ impl DataGateway {
     pub fn new() -> Self {
         let token = env::var("YNAB_TOKEN").expect("Ynab token not in env");
         let cache_file = env::var("YNAB_CACHE_FILE").expect("YNAB_CACHE_FILE not in env");
-        let api = ynab_api::YnabApi::new(&token, &cache_file, Duration::hours(1));
+        let api = ynab_api::YnabApi::new(&token, &cache_file, Duration::seconds(20));
         let engine =
             QueryEngine::new(&std::env::var("DATABASE_URL").expect("DATABASE_URL not in env"));
         Self { api, engine }
     }
 
     pub fn refresh_db(&mut self) {
+        self.engine.remigrate();
         self.load_budgets();
         let budgets = self.get_budgets();
         for b in budgets {
