@@ -167,8 +167,8 @@ impl QueryEngine {
         return None;
     }
 
-    pub fn get_last_10_transactions(&self, budget_id: &str) -> Vec<Transaction> {
-        let query = include_str!("queries/get_last_10_transactions.sql");
+    pub fn get_transactions(&self, budget_id: &str) -> Vec<Transaction> {
+        let query = include_str!("queries/get_all_transactions.sql");
         let mut statement = self.conn.prepare(query).expect("Insert failed");
         statement
             .bind((":budget_id", budget_id))

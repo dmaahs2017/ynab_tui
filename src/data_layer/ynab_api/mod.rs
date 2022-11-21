@@ -13,8 +13,6 @@ type ApiResult<T> = Result<T, Box<dyn std::error::Error>>;
 #[derive(Debug)]
 pub struct YnabApi {
     base_url: String,
-    //headers = {"Authorization": f"Bearer {TOKEN}"}
-    //token = token
     cache: HashMap<String, CacheEntry>,
     cache_hit: u32,
     cache_miss: u32,
@@ -27,9 +25,23 @@ pub struct YnabApi {
 
 impl YnabApi {
     pub fn new(token: &str, cache_file: &str, refresh_duration: Duration) -> Self {
-        let cache = fs::File::open(cache_file)
+        let mut cache = fs::File::open(cache_file)
             .map(|f| serde_json::from_reader(io::BufReader::new(f)).unwrap_or_default())
-            .unwrap_or_default();
+            .unwrap_or({
+                let mut map = HashMap::new();
+                map.insert("created".to_string(), CacheEntry { datetime: Local::now(), response_json: String::new() });
+                map
+            });
+
+        if let Some(entry) = cache.get("created") {
+            if Local::now() - entry.datetime >= Duration::days(1) {
+                cache.clear();
+                cache.insert("created".to_string(), CacheEntry { datetime: Local::now(), response_json: String::new() });
+            }
+        } else {
+            cache.clear();
+            cache.insert("created".to_string(), CacheEntry { datetime: Local::now(), response_json: String::new() });
+        }
 
         Self {
             base_url: String::from("https://api.youneedabudget.com/v1"),

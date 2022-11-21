@@ -94,7 +94,7 @@ impl DataGateway {
         }
     }
 
-    pub fn get_last_10_transactions(&self, budget_id: &str) -> Vec<Transaction> {
-        self.engine.get_last_10_transactions(budget_id)
+    pub fn get_transactions(&self, budget_id: &str) -> Vec<Transaction> {
+        self.engine.get_transactions(budget_id)
     }
 }

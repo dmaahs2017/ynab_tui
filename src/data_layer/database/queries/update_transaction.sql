@@ -1,4 +1,4 @@
-UPDATE budgets
+UPDATE transactions
 SET id = :id,
     date = :date,
     amount = :amount,

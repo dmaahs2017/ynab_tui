@@ -48,6 +48,11 @@ impl Homepage {
     }
 }
 
+enum InputMode {
+    BudgetSelect,
+    TransactionFilter,
+}
+
 impl Page for Homepage {
     fn ui(&mut self, frame: &mut Frame<CrosstermBackend<io::Stdout>>, area: Rect) {
         frame.render_widget(Clear, area);
@@ -109,7 +114,7 @@ impl Page for Homepage {
                     let dg = DataGateway::new();
                     let i = self.budgets.previous();
                     let b_id = &self.budgets.items[i].id;
-                    self.transactions = dg.get_last_10_transactions(b_id);
+                    self.transactions = dg.get_transactions(b_id);
                     return Ok(Message::Noop);
                 }
                 KeyCode::Char('j') => {
@@ -120,7 +125,7 @@ impl Page for Homepage {
                     let dg = DataGateway::new();
                     let i = self.budgets.next();
                     let b_id = &self.budgets.items[i].id;
-                    self.transactions = dg.get_last_10_transactions(b_id);
+                    self.transactions = dg.get_transactions(b_id);
                     return Ok(Message::Noop);
                 }
                 KeyCode::Esc => {
