@@ -42,9 +42,9 @@ CREATE TABLE IF NOT EXISTS transactions (
 CREATE TABLE IF NOT EXISTS accounts (
     id                        TEXT PRIMARY KEY NOT NULL UNIQUE,
     name                      TEXT NOT NULL,
-    type                      TEXT NOT NULL,
-    on_budget                 INTEGER NOT NULL,
-    closed                    INTEGER NOT NULL CHECK(closed IN (0, 1)), --BOOL
+    account_type              TEXT NOT NULL CHECK(account_type in ('checking', 'savings', 'cash', 'creditCard', 'lineOfCredit', 'otherAsset', 'otherLiability', 'mortgage', 'autoLoan', 'studentLoan', 'personalLoan', 'medicalDebt', 'otherDebt')),
+    on_budget                 INTEGER NOT NULL CHECK(on_budget in (0, 1)), --BOOL
+    closed                    INTEGER NOT NULL CHECK(closed in (0, 1)), --BOOL
     note                      TEXT,
     balance                   INTEGER NOT NULL,
     cleared_balance           INTEGER NOT NULL,

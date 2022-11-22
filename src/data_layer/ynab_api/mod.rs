@@ -1,4 +1,4 @@
-mod response_models;
+pub mod response_models;
 use response_models::*;
 
 use chrono::{DateTime, Duration, Local};

@@ -36,8 +36,10 @@ impl DataGateway {
     }
 
     fn load_budget_export(&mut self, budget_id: &str) -> Result<()> {
-        let export = self.api.budget_export(budget_id, None).expect("Failed to get budget export from api").data;
-        export.data.
+        let export = self.api.budget_export(budget_id, None).expect("Failed to get budget export from api").data.budget;
+        for account in export.accounts {
+            self.engine.insert_account(account.into())
+        }
         Ok(())
     }
 
@@ -47,15 +49,7 @@ impl DataGateway {
             .list_budgets(false)
             .expect("Failed to get budgets from api");
         for b in budget_list.data.budgets {
-            let b = models::Budget {
-                id: b.id,
-                name: b.name,
-                last_modified_on: b.last_modified_on,
-                first_month: b.first_month,
-                last_month: b.last_month,
-                date_format: b.date_format.format,
-            };
-
+            let b: Budget = b.into();
             if let Some(_) = self.engine.get_budget(&b.id) {
                 self.engine.update_budget(b)
             } else {
@@ -75,22 +69,7 @@ impl DataGateway {
             .expect("Failed to get transactions from api");
 
         for t in transactions.data.transactions {
-            let t = Transaction {
-                id: t.id,
-                budget_id: budget_id.to_string(),
-                date: t.date,
-                amount: t.amount,
-                memo: t.memo,
-                account_id: t.account_id,
-                payee_id: t.payee_id,
-                category_id: t.category_id,
-                transfer_account_id: t.transfer_account_id,
-                transfer_transaction_id: t.transfer_transaction_id,
-                matched_transaction_id: t.matched_transaction_id,
-                account_name: t.account_name,
-                payee_name: t.payee_name,
-                category_name: t.category_name,
-            };
+            let t = Transaction::from_detail(t, budget_id);
             if let Some(db_transaction) = self.engine.get_transaction(&t.id) {
                 if db_transaction != t {
                     self.engine.update_transaction(t)?;

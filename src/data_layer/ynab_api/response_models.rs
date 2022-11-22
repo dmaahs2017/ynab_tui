@@ -268,22 +268,22 @@ pub struct TransactionSummary {
     pub id: String,
     pub date: String,
     pub amount: i64,
-    pub memo: String,
+    pub memo: Option<String>,
     pub cleared: ClearedStatus,
     pub approved: bool,
     pub flag_color: FlagColor,
     pub account_id: String,
-    pub payee_id: String,
-    pub category_id: String,
-    pub transfer_account_id: String,
-    pub transfer_transaction_id: String,
-    pub matched_transaction_id: String,
-    pub import_id: String,
+    pub payee_id: Option<String>,
+    pub category_id: Option<String>,
+    pub transfer_account_id: Option<String>,
+    pub transfer_transaction_id: Option<String>,
+    pub matched_transaction_id: Option<String>,
+    pub import_id: Option<String>,
     pub deleted: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-enum Frequency {
+pub enum Frequency {
     #[serde(rename = "never")]
     Never, 
     #[serde(rename = "daily")]
@@ -363,8 +363,8 @@ pub struct BudgetDetail {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BudgetDetailResponse {
-    budget: BudgetDetail,
-    server_knowledge: i64,
+    pub budget: BudgetDetail,
+    pub server_knowledge: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
