@@ -30,8 +30,14 @@ impl DataGateway {
         self.load_budgets();
         let budgets = self.get_budgets();
         for b in budgets {
-            self.load_transactions(&b.id)?;
+            self.load_budget_export(&b.id)?;
         }
+        Ok(())
+    }
+
+    fn load_budget_export(&mut self, budget_id: &str) -> Result<()> {
+        let export = self.api.budget_export(budget_id, None).expect("Failed to get budget export from api").data;
+        export.data.
         Ok(())
     }
 

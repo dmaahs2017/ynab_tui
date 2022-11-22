@@ -63,13 +63,7 @@ pub struct HybridTransaction {
 pub struct HybridTransactionsResponse {
     pub transactions: Vec<HybridTransaction>,
 }
-//"category_id": null,
-//"flag_color": null,
-//"import_id": null,
-//"matched_transaction_id": null,
-//"memo": null,
-//"transfer_account_id": null,
-//"transfer_transaction_id": null,
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TransactionDetail {
     pub id: String,
@@ -229,6 +223,148 @@ pub struct BudgetSummary {
 pub struct BudgetSummaryResponse {
     pub budgets: Vec<BudgetSummary>,
     pub default_budget: Option<BudgetSummary>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Payee {
+    pub id: String,
+    pub name: String,
+    pub transfer_account_id: String,
+    pub deleted: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PayeeLocation {
+    pub id: String,
+    pub payee_id: String,
+    pub latitude: String,
+    pub longitude: String,
+    pub deleted:	bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CategoryGroup {
+    pub id:	String,
+    pub name:	String,
+    pub hidden:	bool,
+    pub deleted:    bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MonthDetail {
+    pub month: String,
+    pub note: String,
+    pub income: i64,
+    pub budgeted: i64,
+    pub activity: i64,
+    pub to_be_budgeted: i64,
+    pub age_of_money: i32,
+    pub deleted: bool,
+    pub categories: Vec<Category>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TransactionSummary {
+    pub id: String,
+    pub date: String,
+    pub amount: i64,
+    pub memo: String,
+    pub cleared: ClearedStatus,
+    pub approved: bool,
+    pub flag_color: FlagColor,
+    pub account_id: String,
+    pub payee_id: String,
+    pub category_id: String,
+    pub transfer_account_id: String,
+    pub transfer_transaction_id: String,
+    pub matched_transaction_id: String,
+    pub import_id: String,
+    pub deleted: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+enum Frequency {
+    #[serde(rename = "never")]
+    Never, 
+    #[serde(rename = "daily")]
+    Daily,
+    #[serde(rename = "weekly")]
+    Weekly,
+    #[serde(rename = "everyOtherWeek")]
+    EveryOtherWeek,
+    #[serde(rename = "twiceAMonth")]
+    TwiceAMonth,
+    #[serde(rename = "every4Weeks")]
+    Every4Weeks,
+    #[serde(rename = "monthly")]
+    Monthly,
+    #[serde(rename = "everyOtherMonth")]
+    EveryOtherMonth,
+    #[serde(rename = "every3Months")]
+    Every3Months,
+    #[serde(rename = "every4Months")]
+    Every4Months,
+    #[serde(rename = "twiceAYear")]
+    TwiceAYear,
+    #[serde(rename = "yearly")]
+    Yearly,
+    #[serde(rename = "everyOtherYear")]
+    EveryOtherYear
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ScheduledTransactionSummary {
+    pub id: String,
+    pub date_first: String,
+    pub date_next: String,
+    pub frequency: Frequency,
+    pub amount: i64,
+    pub memo: String,
+    pub flag_color: FlagColor,
+    pub account_id: String,
+    pub payee_id: String,
+    pub category_id: String,
+    pub transfer_account_id: String,
+    pub deleted: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ScheduledSubTransaction {
+    pub id:	String,
+    pub scheduled_transaction_id:	String,
+    pub amount:	i64,
+    pub memo: String,
+    pub payee_id: String,
+    pub category_id: String,
+    pub transfer_account_id: String,
+    pub deleted:	bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BudgetDetail {
+    pub id: String,
+    pub name: String,
+    pub last_modified_on: String,
+    pub first_month: String,
+    pub last_month: String,
+    pub date_format: DateFormat,
+    pub currency_format: CurrencyFormat,
+    pub accounts: Vec<Account>,
+    pub payees: Vec<Payee>,
+    pub payee_locations: Vec<PayeeLocation>,
+    pub category_groups: Vec<CategoryGroup>,
+    pub categories: Vec<Category>,
+    pub months: Vec<MonthDetail>,
+    pub transactions: Vec<TransactionSummary>,
+    pub sub_transactions: Vec<SubTransaction>,
+    pub scheduled_transactions: Vec<ScheduledTransactionSummary>,
+    pub scheduled_subtransactions: Vec<ScheduledSubTransaction>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BudgetDetailResponse {
+    budget: BudgetDetail,
+    server_knowledge: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

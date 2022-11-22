@@ -114,14 +114,14 @@ impl YnabApi {
         Ok(serde_json::from_str(&self.get(endp)?)?)
     }
 
-    /// TODO
-    #[allow(dead_code)]
-    pub fn get_budget(
+    // TODO: Implement last knowledge of server
+    pub fn budget_export(
         &mut self,
-        _budget_id: &str,
+        budget_id: &str,
         _last_knowledge_of_server: Option<i32>,
-    ) -> ApiResult<Data<()>> {
-        todo!("GET /budgets/{_budget_id}")
+    ) -> ApiResult<Data<BudgetDetailResponse>> {
+        let endp = &format!("/budgets/{budget_id}");
+        Ok(serde_json::from_str(&self.get(endp)?)?)
     }
 
     /// TODO
