@@ -32,7 +32,7 @@ impl QueryEngine {
     }
 
     pub fn get_budget(&self, budget_id: &str) -> Option<Budget> {
-        let query = include_str!("queries/get_budget_by_id.sql");
+        let query = include_str!("queries/budget/select_by_id.sql");
         let mut statement = self.conn.prepare(query).expect("Prepared select failed");
         statement
             .bind((":id", budget_id))
@@ -44,44 +44,49 @@ impl QueryEngine {
     }
 
     pub fn get_all_budgets(&self) -> Vec<Budget> {
-        let query = include_str!("queries/get_all_budgets.sql");
+        let query = include_str!("queries/budget/select_all.sql");
         let mut statement = self.conn.prepare(query).expect("Prepared select failed");
         statement.collect().expect("Failed to collect budgets")
     }
 
+    pub fn insert_account(&self, account: Account) -> Result<()> {
+        let query = include_str!("queries/account/insert.sql");
+        let mut statement = self.conn.prepare(query)?;
+        account.bind(&mut statement)?;
+        statement.next()?;
+        Ok(())
+    }
+
     pub fn insert_budget(&self, budget: Budget) {
-        let query = include_str!("queries/insert_budget.sql");
+        let query = include_str!("queries/budget/insert.sql");
         let mut statement = self.conn.prepare(query).expect("Insert failed");
         budget.bind(&mut statement).expect("Failed to bind budget");
         statement.next().expect("Insert failed");
     }
 
     pub fn update_budget(&self, budget: Budget) {
-        let query = include_str!("queries/update_budget.sql");
+        let query = include_str!("queries/budget/update.sql");
         let mut statement = self.conn.prepare(query).expect("Insert failed");
         budget.bind(&mut statement).expect("Failed to bind budget");
         statement.next().expect("Insert failed");
     }
 
     pub fn insert_transaction(&self, transaction: Transaction) -> Result<()> {
-        let query = include_str!("queries/insert_transaction.sql");
+        let query = include_str!("queries/transaction/insert.sql");
         let mut statement = self.conn.prepare(query)?;
         transaction.bind(&mut statement)?;
         statement.next()?;
         Ok(())
     }
 
-    pub fn get_transaction(&self, transaction_id: &str) -> Option<Transaction> {
-        let query = include_str!("queries/get_transaction_by_id.sql");
-        let mut statement = self.conn.prepare(query).expect("Prepared select failed");
-        statement
-            .bind((":id", transaction_id))
-            .expect("Failed to bind id");
-
+    pub fn get_transaction(&self, transaction_id: &str) -> Result<Option<Transaction>> {
+        let query = include_str!("queries/transaction/select_by_id.sql");
+        let mut statement = self.conn.prepare(query)?;
+        statement.bind((":id", transaction_id))?;
         if let Ok(State::Row) = statement.next() {
-            return Some(Transaction::read(&mut statement).expect("Failed to read transaction"));
+            return Ok(Some(Transaction::read(&mut statement)?));
         }
-        return None;
+        return Ok(None);
     }
 
     pub fn get_transactions_where(
@@ -90,7 +95,7 @@ impl QueryEngine {
         search_query: &str,
     ) -> Result<Vec<Transaction>> {
         let query = format!(
-            include_str!("queries/get_transactions_where.sql"),
+            include_str!("queries/transaction/select_where.sql"),
             search_query
         );
         let mut statement = self.conn.prepare(query)?;
@@ -98,18 +103,15 @@ impl QueryEngine {
         statement.collect()
     }
 
-    pub fn get_transactions(&self, budget_id: &str) -> Vec<Transaction> {
-        let query = include_str!("queries/get_all_transactions.sql");
-        let mut statement = self.conn.prepare(query).expect("Insert failed");
-        statement
-            .bind((":budget_id", budget_id))
-            .expect("Failed to bind prepared statement");
-
-        statement.collect().expect("Failed to collect transactions")
+    pub fn get_transactions(&self, budget_id: &str) -> Result<Vec<Transaction>> {
+        let query = include_str!("queries/transaction/select_all.sql");
+        let mut statement = self.conn.prepare(query)?;
+        statement.bind((":budget_id", budget_id))?;
+        statement.collect()
     }
 
     pub fn update_transaction(&self, transaction: Transaction) -> Result<()> {
-        let query = include_str!("queries/update_transaction.sql");
+        let query = include_str!("queries/transaction/update.sql");
         let mut statement = self.conn.prepare(query)?;
         transaction.bind(&mut statement)?;
         statement.next()?;

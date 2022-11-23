@@ -38,7 +38,7 @@ impl DataGateway {
     fn load_budget_export(&mut self, budget_id: &str) -> Result<()> {
         let export = self.api.budget_export(budget_id, None).expect("Failed to get budget export from api").data.budget;
         for account in export.accounts {
-            self.engine.insert_account(account.into())
+            self.engine.insert_account(account.into())?
         }
         Ok(())
     }
@@ -70,7 +70,7 @@ impl DataGateway {
 
         for t in transactions.data.transactions {
             let t = Transaction::from_detail(t, budget_id);
-            if let Some(db_transaction) = self.engine.get_transaction(&t.id) {
+            if let Some(db_transaction) = self.engine.get_transaction(&t.id)? {
                 if db_transaction != t {
                     self.engine.update_transaction(t)?;
                 }
@@ -82,7 +82,7 @@ impl DataGateway {
     }
 
     pub fn get_transactions(&self, budget_id: &str) -> Vec<Transaction> {
-        self.engine.get_transactions(budget_id)
+        self.engine.get_transactions(budget_id).expect("Failed to get transactions")
     }
 
     pub fn get_transactions_where(&self, budget_id: &str, query: &str) -> Result<Vec<Transaction>> {
