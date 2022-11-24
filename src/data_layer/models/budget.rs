@@ -1,4 +1,5 @@
 use crate::data_layer::ynab_api::response_models as rm;
+use crate::*;
 
 use super::*;
 use sqlite::{Result, Statement};
@@ -13,8 +14,13 @@ pub struct Budget {
     pub date_format: String,
 }
 
+impl_insertable!(Budget, "../database/queries/budget/insert.sql");
+impl_updateable!(Budget, "../database/queries/budget/update.sql");
+impl_id_selectable!(Budget, "../database/queries/budget/select_by_id.sql");
+impl_all_selectable!(Budget, "../database/queries/budget/select_all.sql");
+
 impl From<rm::BudgetSummary> for Budget {
-    fn from(a: rm::BudgetSummary) ->  Self {
+    fn from(a: rm::BudgetSummary) -> Self {
         Self {
             id: a.id,
             name: a.name,
@@ -41,7 +47,7 @@ impl ReadFromStatement for Budget {
 
 impl BindToStatement for Budget {
     fn bind(self, s: &mut Statement) -> Result<()> {
-        s .bind_iter::<_, (_, Value)>([
+        s.bind_iter::<_, (_, Value)>([
             (":id", self.id.into()),
             (":name", self.name.into()),
             (":last_modified_on", self.last_modified_on.into()),

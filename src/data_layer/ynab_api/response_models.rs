@@ -1,38 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum ClearedStatus {
-    #[serde(rename = "cleared")]
-    Cleared,
-    #[serde(rename = "uncleared")]
-    Uncleared,
-    #[serde(rename = "reconciled")]
-    Reconciled,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum FlagColor {
-    #[serde(rename = "red")]
-    Red,
-    #[serde(rename = "orange")]
-    Orange,
-    #[serde(rename = "yellow")]
-    Yellow,
-    #[serde(rename = "green")]
-    Green,
-    #[serde(rename = "blue")]
-    Blue,
-    #[serde(rename = "purple")]
-    Purple,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum TransactionType {
-    #[serde(rename = "transaction")]
-    Transaction,
-    #[serde(rename = "subtransaction")]
-    Subtransaction,
-}
+use crate::data_layer::models::enums::*;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HybridTransaction {
@@ -107,16 +75,6 @@ pub struct TransactionsResponse {
     pub transactions: Vec<TransactionDetail>,
 }
 
-/// TB=’Target Category Balance’, TBD=’Target Category Balance by Date’, MF=’Monthly Funding’, NEED=’Plan Your Spending’
-#[derive(Debug, Serialize, Deserialize)]
-pub enum GoalType {
-    TB,
-    TBD,
-    MF,
-    NEED,
-    DEBT,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Category {
     pub id: String,
@@ -173,23 +131,6 @@ pub struct CurrencyFormat {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum AccountTypeString {
-    Checking,
-    Savings,
-    Cash,
-    CreditCard,
-    LineOfCredit,
-    OtherAsset,
-    OtherLiability,
-    Mortgage,
-    AutoLoan,
-    StudentLoan,
-    PersonalLoan,
-    MedicalDebt,
-    OtherDebt,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
     pub id: String,
     pub name: String,
@@ -201,7 +142,7 @@ pub struct Account {
     pub balance: i64,
     pub cleared_balance: i64,
     pub uncleared_balance: i64,
-    pub transfer_payee_id: String,
+    pub transfer_payee_id: Option<String>,
     pub direct_import_linked: bool,
     pub direct_import_in_error: bool,
     pub deleted: bool,
@@ -239,15 +180,15 @@ pub struct PayeeLocation {
     pub payee_id: String,
     pub latitude: String,
     pub longitude: String,
-    pub deleted:	bool,
+    pub deleted: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CategoryGroup {
-    pub id:	String,
-    pub name:	String,
-    pub hidden:	bool,
-    pub deleted:    bool,
+    pub id: String,
+    pub name: String,
+    pub hidden: bool,
+    pub deleted: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -283,36 +224,6 @@ pub struct TransactionSummary {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Frequency {
-    #[serde(rename = "never")]
-    Never, 
-    #[serde(rename = "daily")]
-    Daily,
-    #[serde(rename = "weekly")]
-    Weekly,
-    #[serde(rename = "everyOtherWeek")]
-    EveryOtherWeek,
-    #[serde(rename = "twiceAMonth")]
-    TwiceAMonth,
-    #[serde(rename = "every4Weeks")]
-    Every4Weeks,
-    #[serde(rename = "monthly")]
-    Monthly,
-    #[serde(rename = "everyOtherMonth")]
-    EveryOtherMonth,
-    #[serde(rename = "every3Months")]
-    Every3Months,
-    #[serde(rename = "every4Months")]
-    Every4Months,
-    #[serde(rename = "twiceAYear")]
-    TwiceAYear,
-    #[serde(rename = "yearly")]
-    Yearly,
-    #[serde(rename = "everyOtherYear")]
-    EveryOtherYear
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct ScheduledTransactionSummary {
     pub id: String,
     pub date_first: String,
@@ -330,14 +241,14 @@ pub struct ScheduledTransactionSummary {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ScheduledSubTransaction {
-    pub id:	String,
-    pub scheduled_transaction_id:	String,
-    pub amount:	i64,
+    pub id: String,
+    pub scheduled_transaction_id: String,
+    pub amount: i64,
     pub memo: String,
     pub payee_id: String,
     pub category_id: String,
     pub transfer_account_id: String,
-    pub deleted:	bool,
+    pub deleted: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

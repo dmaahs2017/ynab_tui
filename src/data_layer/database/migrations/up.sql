@@ -95,7 +95,6 @@ CREATE TABLE IF NOT EXISTS categories (
     budgeted                   INTEGER NOT NULL,
     activity                   INTEGER NOT NULL,
     balance                    INTEGER NOT NULL,
-    goal_id                    text,
 
     FOREIGN KEY (category_group_id)
         REFERENCES category_groups (id),

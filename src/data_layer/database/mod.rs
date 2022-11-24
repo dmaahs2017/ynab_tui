@@ -1,15 +1,17 @@
 use super::models::*;
-use sqlite::{Result, Statement };
 use sqlite::{self, Connection, State};
+use sqlite::{Result, Statement};
 
-trait CollectQuery<T> 
-    where T: ReadFromStatement
+trait CollectQuery<T>
+where
+    T: ReadFromStatement,
 {
     fn collect(&mut self) -> Result<Vec<T>>;
 }
 
-impl<'a, T> CollectQuery<T> for Statement<'a> 
-    where T: ReadFromStatement
+impl<'a, T> CollectQuery<T> for Statement<'a>
+where
+    T: ReadFromStatement,
 {
     fn collect(&mut self) -> Result<Vec<T>> {
         let mut output = vec![];
@@ -31,60 +33,30 @@ impl QueryEngine {
         Self { conn }
     }
 
-    pub fn get_budget(&self, budget_id: &str) -> Option<Budget> {
-        let query = include_str!("queries/budget/select_by_id.sql");
-        let mut statement = self.conn.prepare(query).expect("Prepared select failed");
-        statement
-            .bind((":id", budget_id))
-            .expect("Failed to bind prepared statement");
-        if let Ok(State::Row) = statement.next() {
-            return Some(Budget::read(&mut statement).expect("Failed to read statement"));
-        }
-        return None;
+    pub fn select_all<T: AllSelectable + ReadFromStatement>(&self) -> Result<Vec<T>> {
+        let mut statement = self.conn.prepare(T::query())?;
+        statement.collect()
     }
 
-    pub fn get_all_budgets(&self) -> Vec<Budget> {
-        let query = include_str!("queries/budget/select_all.sql");
-        let mut statement = self.conn.prepare(query).expect("Prepared select failed");
-        statement.collect().expect("Failed to collect budgets")
-    }
-
-    pub fn insert_account(&self, account: Account) -> Result<()> {
-        let query = include_str!("queries/account/insert.sql");
-        let mut statement = self.conn.prepare(query)?;
-        account.bind(&mut statement)?;
+    pub fn insert<T: Insertable + BindToStatement>(&self, a: T) -> Result<()> {
+        let mut statement = self.conn.prepare(a.query())?;
+        a.bind(&mut statement)?;
         statement.next()?;
         Ok(())
     }
 
-    pub fn insert_budget(&self, budget: Budget) {
-        let query = include_str!("queries/budget/insert.sql");
-        let mut statement = self.conn.prepare(query).expect("Insert failed");
-        budget.bind(&mut statement).expect("Failed to bind budget");
-        statement.next().expect("Insert failed");
-    }
-
-    pub fn update_budget(&self, budget: Budget) {
-        let query = include_str!("queries/budget/update.sql");
-        let mut statement = self.conn.prepare(query).expect("Insert failed");
-        budget.bind(&mut statement).expect("Failed to bind budget");
-        statement.next().expect("Insert failed");
-    }
-
-    pub fn insert_transaction(&self, transaction: Transaction) -> Result<()> {
-        let query = include_str!("queries/transaction/insert.sql");
-        let mut statement = self.conn.prepare(query)?;
-        transaction.bind(&mut statement)?;
+    pub fn update<T: Updateable + BindToStatement>(&self, a: T) -> Result<()> {
+        let mut statement = self.conn.prepare(a.query())?;
+        a.bind(&mut statement)?;
         statement.next()?;
         Ok(())
     }
 
-    pub fn get_transaction(&self, transaction_id: &str) -> Result<Option<Transaction>> {
-        let query = include_str!("queries/transaction/select_by_id.sql");
-        let mut statement = self.conn.prepare(query)?;
-        statement.bind((":id", transaction_id))?;
+    pub fn select_by_id<T: IdSelectable + ReadFromStatement>(&self, id: &str) -> Result<Option<T>> {
+        let mut statement = self.conn.prepare(T::query())?;
+        statement.bind((":id", id))?;
         if let Ok(State::Row) = statement.next() {
-            return Ok(Some(Transaction::read(&mut statement)?));
+            return Ok(Some(T::read(&mut statement)?));
         }
         return Ok(None);
     }
@@ -108,14 +80,6 @@ impl QueryEngine {
         let mut statement = self.conn.prepare(query)?;
         statement.bind((":budget_id", budget_id))?;
         statement.collect()
-    }
-
-    pub fn update_transaction(&self, transaction: Transaction) -> Result<()> {
-        let query = include_str!("queries/transaction/update.sql");
-        let mut statement = self.conn.prepare(query)?;
-        transaction.bind(&mut statement)?;
-        statement.next()?;
-        Ok(())
     }
 
     pub fn remigrate(&self) {

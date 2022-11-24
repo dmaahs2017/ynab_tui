@@ -1,7 +1,8 @@
-use crate::data_layer::ynab_api::response_models as rm;
-use sqlite::Statement;
-use sqlite::Result;
 use super::*;
+use crate::data_layer::ynab_api::response_models as rm;
+use crate::*;
+use sqlite::Result;
+use sqlite::Statement;
 
 #[derive(PartialEq, Eq, Clone)]
 pub struct Transaction {
@@ -17,6 +18,13 @@ pub struct Transaction {
     pub transfer_transaction_id: Option<String>,
     pub matched_transaction_id: Option<String>,
 }
+
+impl_insertable!(Transaction, "../database/queries/transaction/insert.sql");
+impl_updateable!(Transaction, "../database/queries/transaction/update.sql");
+impl_id_selectable!(
+    Transaction,
+    "../database/queries/transaction/select_by_id.sql"
+);
 
 impl BindToStatement for Transaction {
     fn bind(self, s: &mut Statement) -> Result<()> {
@@ -41,7 +49,7 @@ impl BindToStatement for Transaction {
                 ":matched_transaction_id",
                 self.matched_transaction_id.into_value(),
             ),
-            ])
+        ])
     }
 }
 
@@ -78,7 +86,6 @@ impl Transaction {
             transfer_transaction_id: t.transfer_transaction_id,
             matched_transaction_id: t.matched_transaction_id,
         }
-            
     }
 
     pub fn from_summary(t: rm::TransactionSummary, b_id: &str) -> Self {
@@ -96,6 +103,4 @@ impl Transaction {
             matched_transaction_id: t.matched_transaction_id,
         }
     }
-
-
 }
