@@ -1,38 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum ClearedStatus {
-    #[serde(rename = "cleared")]
-    Cleared,
-    #[serde(rename = "uncleared")]
-    Uncleared,
-    #[serde(rename = "reconciled")]
-    Reconciled,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum FlagColor {
-    #[serde(rename = "red")]
-    Red,
-    #[serde(rename = "orange")]
-    Orange,
-    #[serde(rename = "yellow")]
-    Yellow,
-    #[serde(rename = "green")]
-    Green,
-    #[serde(rename = "blue")]
-    Blue,
-    #[serde(rename = "purple")]
-    Purple,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum TransactionType {
-    #[serde(rename = "transaction")]
-    Transaction,
-    #[serde(rename = "subtransaction")]
-    Subtransaction,
-}
+use crate::data_layer::models::enums::*;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HybridTransaction {
@@ -63,13 +31,7 @@ pub struct HybridTransaction {
 pub struct HybridTransactionsResponse {
     pub transactions: Vec<HybridTransaction>,
 }
-//"category_id": null,
-//"flag_color": null,
-//"import_id": null,
-//"matched_transaction_id": null,
-//"memo": null,
-//"transfer_account_id": null,
-//"transfer_transaction_id": null,
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TransactionDetail {
     pub id: String,
@@ -111,16 +73,6 @@ pub struct SubTransaction {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TransactionsResponse {
     pub transactions: Vec<TransactionDetail>,
-}
-
-/// TB=’Target Category Balance’, TBD=’Target Category Balance by Date’, MF=’Monthly Funding’, NEED=’Plan Your Spending’
-#[derive(Debug, Serialize, Deserialize)]
-pub enum GoalType {
-    TB,
-    TBD,
-    MF,
-    NEED,
-    DEBT,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -179,23 +131,6 @@ pub struct CurrencyFormat {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum AccountTypeString {
-    Checking,
-    Savings,
-    Cash,
-    CreditCard,
-    LineOfCredit,
-    OtherAsset,
-    OtherLiability,
-    Mortgage,
-    AutoLoan,
-    StudentLoan,
-    PersonalLoan,
-    MedicalDebt,
-    OtherDebt,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
     pub id: String,
     pub name: String,
@@ -207,7 +142,7 @@ pub struct Account {
     pub balance: i64,
     pub cleared_balance: i64,
     pub uncleared_balance: i64,
-    pub transfer_payee_id: String,
+    pub transfer_payee_id: Option<String>,
     pub direct_import_linked: bool,
     pub direct_import_in_error: bool,
     pub deleted: bool,
@@ -229,6 +164,118 @@ pub struct BudgetSummary {
 pub struct BudgetSummaryResponse {
     pub budgets: Vec<BudgetSummary>,
     pub default_budget: Option<BudgetSummary>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Payee {
+    pub id: String,
+    pub name: String,
+    pub transfer_account_id: String,
+    pub deleted: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PayeeLocation {
+    pub id: String,
+    pub payee_id: String,
+    pub latitude: String,
+    pub longitude: String,
+    pub deleted: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CategoryGroup {
+    pub id: String,
+    pub name: String,
+    pub hidden: bool,
+    pub deleted: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MonthDetail {
+    pub month: String,
+    pub note: String,
+    pub income: i64,
+    pub budgeted: i64,
+    pub activity: i64,
+    pub to_be_budgeted: i64,
+    pub age_of_money: i32,
+    pub deleted: bool,
+    pub categories: Vec<Category>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TransactionSummary {
+    pub id: String,
+    pub date: String,
+    pub amount: i64,
+    pub memo: Option<String>,
+    pub cleared: ClearedStatus,
+    pub approved: bool,
+    pub flag_color: FlagColor,
+    pub account_id: String,
+    pub payee_id: Option<String>,
+    pub category_id: Option<String>,
+    pub transfer_account_id: Option<String>,
+    pub transfer_transaction_id: Option<String>,
+    pub matched_transaction_id: Option<String>,
+    pub import_id: Option<String>,
+    pub deleted: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ScheduledTransactionSummary {
+    pub id: String,
+    pub date_first: String,
+    pub date_next: String,
+    pub frequency: Frequency,
+    pub amount: i64,
+    pub memo: String,
+    pub flag_color: FlagColor,
+    pub account_id: String,
+    pub payee_id: String,
+    pub category_id: String,
+    pub transfer_account_id: String,
+    pub deleted: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ScheduledSubTransaction {
+    pub id: String,
+    pub scheduled_transaction_id: String,
+    pub amount: i64,
+    pub memo: String,
+    pub payee_id: String,
+    pub category_id: String,
+    pub transfer_account_id: String,
+    pub deleted: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BudgetDetail {
+    pub id: String,
+    pub name: String,
+    pub last_modified_on: String,
+    pub first_month: String,
+    pub last_month: String,
+    pub date_format: DateFormat,
+    pub currency_format: CurrencyFormat,
+    pub accounts: Vec<Account>,
+    pub payees: Vec<Payee>,
+    pub payee_locations: Vec<PayeeLocation>,
+    pub category_groups: Vec<CategoryGroup>,
+    pub categories: Vec<Category>,
+    pub months: Vec<MonthDetail>,
+    pub transactions: Vec<TransactionSummary>,
+    pub sub_transactions: Vec<SubTransaction>,
+    pub scheduled_transactions: Vec<ScheduledTransactionSummary>,
+    pub scheduled_subtransactions: Vec<ScheduledSubTransaction>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BudgetDetailResponse {
+    pub budget: BudgetDetail,
+    pub server_knowledge: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

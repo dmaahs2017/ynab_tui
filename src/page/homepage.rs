@@ -19,7 +19,6 @@ impl TableWidget for Vec<Transaction> {
             .map(|transaction| {
                 Row::new(vec![
                     Cell::from(transaction.date.clone()),
-                    Cell::from(transaction.payee_name.clone().unwrap_or_default()),
                     Cell::from(format!("${:.2}", milicent_to_dollars(transaction.amount))),
                     Cell::from(transaction.memo.clone().unwrap_or_default()),
                 ])

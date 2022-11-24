@@ -1,0 +1,21 @@
+insert into categories (
+    id,
+    category_group_id,
+    name,
+    hidden,
+    original_category_group_id,
+    note,
+    budgeted,
+    activity,
+    balance,
+) values (
+    :id,
+    :category_group_id,
+    :name,
+    :hidden,
+    :original_category_group_id,
+    :note,
+    :budgeted,
+    :activity,
+    :balance,
+)

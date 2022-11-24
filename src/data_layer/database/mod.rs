@@ -1,27 +1,24 @@
 use super::models::*;
-use sqlite::Result;
-use sqlite::{self, Connection, State, Value};
+use sqlite::{self, Connection, State};
+use sqlite::{Result, Statement};
 
-trait IntoValue {
-    fn into_value(self) -> Value;
+trait CollectQuery<T>
+where
+    T: ReadFromStatement,
+{
+    fn collect(&mut self) -> Result<Vec<T>>;
 }
 
-impl IntoValue for Option<String> {
-    fn into_value(self) -> Value {
-        match self {
-            None => Value::Null,
-            Some(s) => Value::String(s),
+impl<'a, T> CollectQuery<T> for Statement<'a>
+where
+    T: ReadFromStatement,
+{
+    fn collect(&mut self) -> Result<Vec<T>> {
+        let mut output = vec![];
+        while let Ok(State::Row) = self.next() {
+            output.push(T::read(self)?);
         }
-    }
-}
-
-impl IntoValue for bool {
-    fn into_value(self) -> Value {
-        if self {
-            Value::Integer(1)
-        } else {
-            Value::Integer(0)
-        }
+        return Ok(output);
     }
 }
 
@@ -36,132 +33,32 @@ impl QueryEngine {
         Self { conn }
     }
 
-    pub fn get_budget(&self, budget_id: &str) -> Option<Budget> {
-        let query = include_str!("queries/get_budget_by_id.sql");
-        let mut statement = self.conn.prepare(query).expect("Prepared select failed");
-        statement
-            .bind((":id", budget_id))
-            .expect("Failed to bind prepared statement");
-        if let Ok(State::Row) = statement.next() {
-            return Some(Budget {
-                id: statement.read("id").unwrap(),
-                name: statement.read("name").unwrap(),
-                last_modified_on: statement.read("last_modified_on").unwrap(),
-                first_month: statement.read("first_month").unwrap(),
-                last_month: statement.read("last_month").unwrap(),
-                date_format: statement.read("date_format").unwrap(),
-            });
-        }
-        return None;
+    pub fn select_all<T: AllSelectable + ReadFromStatement>(&self) -> Result<Vec<T>> {
+        let mut statement = self.conn.prepare(T::query())?;
+        statement.collect()
     }
 
-    pub fn get_all_budgets(&self) -> Vec<Budget> {
-        let query = include_str!("queries/get_all_budgets.sql");
-        let mut statement = self.conn.prepare(query).expect("Prepared select failed");
-        let mut output = vec![];
-        while let Ok(State::Row) = statement.next() {
-            output.push(Budget {
-                id: statement.read("id").unwrap(),
-                name: statement.read("name").unwrap(),
-                last_modified_on: statement.read("last_modified_on").unwrap(),
-                first_month: statement.read("first_month").unwrap(),
-                last_month: statement.read("last_month").unwrap(),
-                date_format: statement.read("date_format").unwrap(),
-            });
-        }
-        return output;
-    }
-
-    pub fn insert_budget(&self, budget: Budget) {
-        let query = include_str!("queries/insert_budget.sql");
-        let mut statement = self.conn.prepare(query).expect("Insert failed");
-        statement
-            .bind_iter::<_, (_, Value)>([
-                (":id", budget.id.into()),
-                (":name", budget.name.into()),
-                (":last_modified_on", budget.last_modified_on.into()),
-                (":first_month", budget.first_month.into()),
-                (":last_month", budget.last_month.into()),
-                (":date_format", budget.date_format.into()),
-            ])
-            .expect("Insert failed");
-        statement.next().expect("Insert failed");
-    }
-
-    pub fn update_budget(&self, budget: Budget) {
-        let query = include_str!("queries/update_budget.sql");
-        let mut statement = self.conn.prepare(query).expect("Insert failed");
-        statement
-            .bind_iter::<_, (_, Value)>([
-                (":id", budget.id.into()),
-                (":name", budget.name.into()),
-                (":last_modified_on", budget.last_modified_on.into()),
-                (":first_month", budget.first_month.into()),
-                (":last_month", budget.last_month.into()),
-                (":date_format", budget.date_format.into()),
-            ])
-            .expect("Insert failed");
-        statement.next().expect("Insert failed");
-    }
-
-    pub fn insert_transaction(&self, transaction: Transaction) -> Result<()> {
-        let query = include_str!("queries/insert_transaction.sql");
-        let mut statement = self.conn.prepare(query)?;
-        statement.bind_iter::<_, (_, Value)>([
-            (":id", transaction.id.into()),
-            (":budget_id", transaction.budget_id.into()),
-            (":date", transaction.date.into()),
-            (":amount", transaction.amount.into()),
-            (":memo", transaction.memo.into_value()),
-            (":account_id", transaction.account_id.into()),
-            (":payee_id", transaction.payee_id.into_value()),
-            (":category_id", transaction.category_id.into_value()),
-            (
-                ":transfer_account_id",
-                transaction.transfer_account_id.into_value(),
-            ),
-            (
-                ":transfer_transaction_id",
-                transaction.transfer_transaction_id.into_value(),
-            ),
-            (
-                ":matched_transaction_id",
-                transaction.matched_transaction_id.into_value(),
-            ),
-            (":account_name", transaction.account_name.into()),
-            (":payee_name", transaction.payee_name.into_value()),
-            (":category_name", transaction.category_name.into()),
-        ])?;
+    pub fn insert<T: Insertable + BindToStatement>(&self, a: T) -> Result<()> {
+        let mut statement = self.conn.prepare(a.query())?;
+        a.bind(&mut statement)?;
         statement.next()?;
         Ok(())
     }
 
-    pub fn get_transaction(&self, transaction_id: &str) -> Option<Transaction> {
-        let query = include_str!("queries/get_transaction_by_id.sql");
-        let mut statement = self.conn.prepare(query).expect("Prepared select failed");
-        statement
-            .bind((":id", transaction_id))
-            .expect("Failed to bind prepared statement");
+    pub fn update<T: Updateable + BindToStatement>(&self, a: T) -> Result<()> {
+        let mut statement = self.conn.prepare(a.query())?;
+        a.bind(&mut statement)?;
+        statement.next()?;
+        Ok(())
+    }
 
+    pub fn select_by_id<T: IdSelectable + ReadFromStatement>(&self, id: &str) -> Result<Option<T>> {
+        let mut statement = self.conn.prepare(T::query())?;
+        statement.bind((":id", id))?;
         if let Ok(State::Row) = statement.next() {
-            return Some(Transaction {
-                id: statement.read("id").unwrap(),
-                budget_id: statement.read("budget_id").unwrap(),
-                date: statement.read("date").unwrap(),
-                amount: statement.read("amount").unwrap(),
-                memo: statement.read("memo").unwrap(),
-                account_id: statement.read("account_id").unwrap(),
-                payee_id: statement.read("payee_id").unwrap(),
-                category_id: statement.read("category_id").unwrap(),
-                transfer_account_id: statement.read("transfer_account_id").unwrap(),
-                transfer_transaction_id: statement.read("transfer_transaction_id").unwrap(),
-                matched_transaction_id: statement.read("matched_transaction_id").unwrap(),
-                account_name: statement.read("account_name").unwrap(),
-                payee_name: statement.read("payee_name").unwrap(),
-                category_name: statement.read("category_name").unwrap(),
-            });
+            return Ok(Some(T::read(&mut statement)?));
         }
-        return None;
+        return Ok(None);
     }
 
     pub fn get_transactions_where(
@@ -170,93 +67,19 @@ impl QueryEngine {
         search_query: &str,
     ) -> Result<Vec<Transaction>> {
         let query = format!(
-            include_str!("queries/get_transactions_where.sql"),
+            include_str!("queries/transaction/select_where.sql"),
             search_query
         );
         let mut statement = self.conn.prepare(query)?;
-
         statement.bind_iter([(":budget_id", budget_id)])?;
-
-        let mut output = vec![];
-        while let Ok(State::Row) = statement.next() {
-            output.push(Transaction {
-                id: statement.read("id").unwrap(),
-                budget_id: statement.read("budget_id").unwrap(),
-                date: statement.read("date").unwrap(),
-                amount: statement.read("amount").unwrap(),
-                memo: statement.read("memo").unwrap(),
-                account_id: statement.read("account_id").unwrap(),
-                payee_id: statement.read("payee_id").unwrap(),
-                category_id: statement.read("category_id").unwrap(),
-                transfer_account_id: statement.read("transfer_account_id").unwrap(),
-                transfer_transaction_id: statement.read("transfer_transaction_id").unwrap(),
-                matched_transaction_id: statement.read("matched_transaction_id").unwrap(),
-                account_name: statement.read("account_name").unwrap(),
-                payee_name: statement.read("payee_name").unwrap(),
-                category_name: statement.read("category_name").unwrap(),
-            });
-        }
-        Ok(output)
+        statement.collect()
     }
 
-    pub fn get_transactions(&self, budget_id: &str) -> Vec<Transaction> {
-        let query = include_str!("queries/get_all_transactions.sql");
-        let mut statement = self.conn.prepare(query).expect("Insert failed");
-        statement
-            .bind((":budget_id", budget_id))
-            .expect("Failed to bind prepared statement");
-
-        let mut output = vec![];
-        while let Ok(State::Row) = statement.next() {
-            output.push(Transaction {
-                id: statement.read("id").unwrap(),
-                budget_id: statement.read("budget_id").unwrap(),
-                date: statement.read("date").unwrap(),
-                amount: statement.read("amount").unwrap(),
-                memo: statement.read("memo").unwrap(),
-                account_id: statement.read("account_id").unwrap(),
-                payee_id: statement.read("payee_id").unwrap(),
-                category_id: statement.read("category_id").unwrap(),
-                transfer_account_id: statement.read("transfer_account_id").unwrap(),
-                transfer_transaction_id: statement.read("transfer_transaction_id").unwrap(),
-                matched_transaction_id: statement.read("matched_transaction_id").unwrap(),
-                account_name: statement.read("account_name").unwrap(),
-                payee_name: statement.read("payee_name").unwrap(),
-                category_name: statement.read("category_name").unwrap(),
-            });
-        }
-        output
-    }
-
-    pub fn update_transaction(&self, transaction: Transaction) -> Result<()> {
-        let query = include_str!("queries/update_transaction.sql");
+    pub fn get_transactions(&self, budget_id: &str) -> Result<Vec<Transaction>> {
+        let query = include_str!("queries/transaction/select_all.sql");
         let mut statement = self.conn.prepare(query)?;
-        statement.bind_iter([
-            (":id", transaction.id.into()),
-            (":date", transaction.date.into()),
-            (":amount", transaction.amount.into()),
-            (":memo", transaction.memo.into_value()),
-            (":account_id", transaction.account_id.into()),
-            (":payee_id", transaction.payee_id.into_value()),
-            (":category_id", transaction.category_id.into_value()),
-            (
-                ":transfer_account_id",
-                transaction.transfer_account_id.into_value(),
-            ),
-            (
-                ":transfer_transaction_id",
-                transaction.transfer_transaction_id.into_value(),
-            ),
-            (
-                ":matched_transaction_id",
-                transaction.matched_transaction_id.into_value(),
-            ),
-            (":account_name", transaction.account_name.into()),
-            (":payee_name", transaction.payee_name.into_value()),
-            (":category_name", transaction.category_name.into()),
-        ])?;
-        statement.next()?;
-        Ok(())
+        statement.bind((":budget_id", budget_id))?;
+        statement.collect()
     }
 
     pub fn remigrate(&self) {

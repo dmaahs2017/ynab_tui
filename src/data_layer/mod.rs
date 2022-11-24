@@ -30,7 +30,28 @@ impl DataGateway {
         self.load_budgets();
         let budgets = self.get_budgets();
         for b in budgets {
-            self.load_transactions(&b.id)?;
+            self.load_budget_export(&b.id)?;
+        }
+        Ok(())
+    }
+
+    fn load_budget_export(&mut self, budget_id: &str) -> Result<()> {
+        let export = self
+            .api
+            .budget_export(budget_id, None)
+            .expect("Failed to get budget export from api")
+            .data
+            .budget;
+        for account in export.accounts {
+            self.engine.insert(Account::from(account))?
+        }
+
+        for group in export.category_groups {
+            self.engine.insert(CategoryGroup::from(group))?
+        }
+
+        for cat in export.categories {
+            self.engine.insert(Category::from(cat))?
         }
         Ok(())
     }
@@ -41,25 +62,25 @@ impl DataGateway {
             .list_budgets(false)
             .expect("Failed to get budgets from api");
         for b in budget_list.data.budgets {
-            let b = models::Budget {
-                id: b.id,
-                name: b.name,
-                last_modified_on: b.last_modified_on,
-                first_month: b.first_month,
-                last_month: b.last_month,
-                date_format: b.date_format.format,
-            };
-
-            if let Some(_) = self.engine.get_budget(&b.id) {
-                self.engine.update_budget(b)
+            let b = Budget::from(b);
+            if let Some(_) = self
+                .engine
+                .select_by_id::<Budget>(&b.id)
+                .expect("failed to get budget by id")
+            {
+                self.engine.update(b).expect("Failed to update budget");
             } else {
-                self.engine.insert_budget(b)
+                self.engine
+                    .insert(Budget::from(b))
+                    .expect("Failed to insert budget")
             }
         }
     }
 
     pub fn get_budgets(&self) -> Vec<Budget> {
-        self.engine.get_all_budgets()
+        self.engine
+            .select_all()
+            .expect("Failed to select all budgets")
     }
 
     fn load_transactions(&mut self, budget_id: &str) -> Result<()> {
@@ -69,35 +90,22 @@ impl DataGateway {
             .expect("Failed to get transactions from api");
 
         for t in transactions.data.transactions {
-            let t = Transaction {
-                id: t.id,
-                budget_id: budget_id.to_string(),
-                date: t.date,
-                amount: t.amount,
-                memo: t.memo,
-                account_id: t.account_id,
-                payee_id: t.payee_id,
-                category_id: t.category_id,
-                transfer_account_id: t.transfer_account_id,
-                transfer_transaction_id: t.transfer_transaction_id,
-                matched_transaction_id: t.matched_transaction_id,
-                account_name: t.account_name,
-                payee_name: t.payee_name,
-                category_name: t.category_name,
-            };
-            if let Some(db_transaction) = self.engine.get_transaction(&t.id) {
+            let t = Transaction::from_detail(t, budget_id);
+            if let Some(db_transaction) = self.engine.select_by_id::<Transaction>(&t.id)? {
                 if db_transaction != t {
-                    self.engine.update_transaction(t)?;
+                    self.engine.update(t)?;
                 }
             } else {
-                self.engine.insert_transaction(t)?;
+                self.engine.insert(t)?;
             }
         }
         Ok(())
     }
 
     pub fn get_transactions(&self, budget_id: &str) -> Vec<Transaction> {
-        self.engine.get_transactions(budget_id)
+        self.engine
+            .get_transactions(budget_id)
+            .expect("Failed to get transactions")
     }
 
     pub fn get_transactions_where(&self, budget_id: &str, query: &str) -> Result<Vec<Transaction>> {

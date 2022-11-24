@@ -24,15 +24,27 @@ CREATE TABLE IF NOT EXISTS transactions (
     category_name             TEXT NOT NULL,
 
     FOREIGN KEY (budget_id)
-        REFERENCES budgets (id)
+        REFERENCES budgets (id),
+    FOREIGN KEY (account_id)
+        REFERENCES accounts (id),
+    FOREIGN KEY (payee_id)
+        REFERENCES payees (id),
+    FOREIGN KEY (category_id)
+        REFERENCES categories (id),
+    FOREIGN KEY (transfer_account_id)
+        REFERENCES accounts (id),
+    FOREIGN KEY (transfer_transaction_id)
+        REFERENCES transactions (id),
+    FOREIGN KEY (matched_transaction_id)
+        REFERENCES transactions (id)
 );
 
 CREATE TABLE IF NOT EXISTS accounts (
     id                        TEXT PRIMARY KEY NOT NULL UNIQUE,
     name                      TEXT NOT NULL,
-    type                      TEXT NOT NULL,
-    on_budget                 INTEGER NOT NULL,
-    closed                    INTEGER NOT NULL CHECK(closed IN (0, 1)), --BOOL
+    account_type              TEXT NOT NULL CHECK(account_type in ('checking', 'savings', 'cash', 'creditCard', 'lineOfCredit', 'otherAsset', 'otherLiability', 'mortgage', 'autoLoan', 'studentLoan', 'personalLoan', 'medicalDebt', 'otherDebt')),
+    on_budget                 INTEGER NOT NULL CHECK(on_budget in (0, 1)), --BOOL
+    closed                    INTEGER NOT NULL CHECK(closed in (0, 1)), --BOOL
     note                      TEXT,
     balance                   INTEGER NOT NULL,
     cleared_balance           INTEGER NOT NULL,
@@ -60,6 +72,19 @@ CREATE TABLE IF NOT EXISTS category_groups (
     hidden                    INTEGER NOT NULL CHECK(hidden in (0, 1))
 );
 
+CREATE TABLE IF NOT exists goals (
+    id text primary key not null unique,
+    type                  TEXT CHECK(type in ('TB', 'TBD', 'MF', 'NEED', 'DEBT')),
+    creation_month        TEXT,
+    target                INTEGER,
+    month                 TEXT,
+    percentage_complete   INTEGER,
+    months_to_budget      INTEGER,
+    underfunded           INTEGER,
+    overall_funded        INTEGER,
+    overall_left          INTEGER
+);
+
 CREATE TABLE IF NOT EXISTS categories (
     id                         TEXT PRIMARY KEY NOT NULL UNIQUE,
     category_group_id          TEXT NOT NULL,
@@ -70,18 +95,11 @@ CREATE TABLE IF NOT EXISTS categories (
     budgeted                   INTEGER NOT NULL,
     activity                   INTEGER NOT NULL,
     balance                    INTEGER NOT NULL,
-    goal_type                  TEXT CHECK(goal_type in ('TB', 'TBD', 'MF', 'NEED', 'DEBT')),
-    goal_creation_month        TEXT,
-    goal_target                INTEGER,
-    goal_month                 TEXT,
-    goal_percentage_complete   INTEGER,
-    goal_months_to_budget      INTEGER,
-    goal_underfunded           INTEGER,
-    goal_overall_funded        INTEGER,
-    goal_overall_left          INTEGER,
 
     FOREIGN KEY (category_group_id)
         REFERENCES category_groups (id),
     FOREIGN KEY (original_category_group_id)
-        REFERENCES category_groups (id)
+        REFERENCES category_groups (id),
+    FOREIGN KEY (goal_id)
+        REFERENCES goals (id)
 );
