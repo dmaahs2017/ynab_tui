@@ -1,26 +1,25 @@
 use tui::widgets::*;
 
-#[derive(Default)]
-pub struct StatefulList<T> {
-    pub state: ListState,
+pub struct StatefulTable<T> {
+    pub state: TableState,
     pub items: Vec<T>,
 }
 
-impl<T> StatefulList<T> {
-    pub fn with_items(items: Vec<T>) -> StatefulList<T> {
-        StatefulList {
-            state: ListState::default(),
+impl<T> StatefulTable<T> {
+    pub fn new() -> Self {
+        Self {
+            state: TableState::default(),
+            items: Vec::default(),
+        }
+    }
+    pub fn with_items(items: Vec<T>) -> Self {
+        Self {
+            state: TableState::default(),
             items,
         }
     }
 
-    /// Returns the new selected index or None if the list is empty
-    pub fn next(&mut self) -> Option<&T> {
-        if self.items.is_empty() {
-            self.unselect();
-            return None
-        }
-
+    pub fn next(&mut self) -> usize {
         let i = match self.state.selected() {
             Some(i) => {
                 if i >= self.items.len() - 1 {
@@ -32,16 +31,10 @@ impl<T> StatefulList<T> {
             None => 0,
         };
         self.state.select(Some(i));
-        Some(&self.items[i])
+        i
     }
 
-    /// Returns the new selected index, or None if the list is empty
-    pub fn previous(&mut self) -> Option<&T> {
-        if self.items.is_empty() {
-            self.unselect();
-            return None;
-        }
-
+    pub fn previous(&mut self) -> usize {
         let i = match self.state.selected() {
             Some(i) => {
                 if i == 0 {
@@ -53,7 +46,7 @@ impl<T> StatefulList<T> {
             None => 0,
         };
         self.state.select(Some(i));
-        Some(&self.items[i])
+        i
     }
 
     pub fn unselect(&mut self) {
