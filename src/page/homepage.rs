@@ -169,6 +169,7 @@ enum PageState {
     BudgetSelect,
     EditSearch,
     NavigateTable,
+    OverlayHelp,
     ErrState(String),
 }
 
@@ -224,6 +225,25 @@ impl Page for Homepage {
             frame.render_stateful_widget(budget_list, area, &mut self.budgets.state);
         }
 
+        if let PageState::OverlayHelp = self.page_state {
+            let help_text = vec![
+                "?         Open Help",
+                "k         Move Up",
+                "j         Move Down",
+                "l         Move Right",
+                "h         Move Left",
+                "ctrl-c    Quit",
+                "/         Edit Filter Query",
+            ].join("\n");
+
+            let help_popup = Paragraph::new(help_text)
+                .wrap(Wrap { trim: false })
+                .block(Block::default().borders(Borders::ALL).title("Help"))
+                .alignment(Alignment::Left);
+            let popup_area = centered_rect(30, 70, area);
+            frame.render_widget(Clear, popup_area);
+            frame.render_widget(help_popup, popup_area);
+        }
         if let PageState::ErrState(message) = &self.page_state {
             let err_popup = Paragraph::new(message.clone())
                 .wrap(Wrap { trim: false })
@@ -247,6 +267,10 @@ impl Page for Homepage {
             if key.modifiers.contains(KeyModifiers::CONTROL) {
                 match key.code {
                     KeyCode::Char('c') => { return Ok(Message::Quit) },
+                    KeyCode::Char('h') => {
+                        self.page_state = PageState::OverlayHelp;
+                        return noop();
+                    }
                     _ => (),
                 }
             }
@@ -254,6 +278,10 @@ impl Page for Homepage {
 
         match self.page_state {
             PageState::ErrState(_) => {
+                self.page_state = PageState::BudgetSelect;
+                noop()
+            },
+            PageState::OverlayHelp => {
                 self.page_state = PageState::BudgetSelect;
                 noop()
             },
