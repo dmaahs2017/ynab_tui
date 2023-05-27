@@ -15,7 +15,7 @@ impl<T> StatefulList<T> {
     }
 
     /// Returns the new selected index or None if the list is empty
-    pub fn next(&mut self) -> Option<&T> {
+    pub fn select_next(&mut self) -> Option<&T> {
         if self.items.is_empty() {
             self.unselect();
             return None;
@@ -36,7 +36,7 @@ impl<T> StatefulList<T> {
     }
 
     /// Returns the new selected index, or None if the list is empty
-    pub fn previous(&mut self) -> Option<&T> {
+    pub fn select_prev(&mut self) -> Option<&T> {
         if self.items.is_empty() {
             self.unselect();
             return None;

@@ -1,21 +1,21 @@
 use super::models::*;
 use sqlite::{self, Connection, Result, State, Statement, Value as SqlValue};
 
-trait IntoValue {
-    fn into_value(self) -> SqlValue;
+trait IntoSqlValue {
+    fn into_sql_value(self) -> SqlValue;
 }
 
-impl IntoValue for Option<String> {
-    fn into_value(self) -> SqlValue {
+impl IntoSqlValue for Option<String> {
+    fn into_sql_value(self) -> SqlValue {
         match self {
             None => SqlValue::Null,
-            Some(s) => SqlValue::String(s.to_string()),
+            Some(s) => SqlValue::String(s),
         }
     }
 }
 
-impl IntoValue for bool {
-    fn into_value(self) -> SqlValue {
+impl IntoSqlValue for bool {
+    fn into_sql_value(self) -> SqlValue {
         if self {
             SqlValue::Integer(1)
         } else {
@@ -44,7 +44,7 @@ impl QueryEngine {
         if let Ok(State::Row) = statement.next() {
             return Some(read_budget_from_statement(&mut statement));
         }
-        return None;
+        None
     }
 
     pub fn get_all_budgets(&self) -> Vec<Budget> {
@@ -54,7 +54,7 @@ impl QueryEngine {
         while let Ok(State::Row) = statement.next() {
             output.push(read_budget_from_statement(&mut statement));
         }
-        return output;
+        output
     }
 
     pub fn insert_budget(&self, budget: Budget) {
@@ -97,24 +97,24 @@ impl QueryEngine {
             (":budget_id", transaction.budget_id.into()),
             (":date", transaction.date.into()),
             (":amount", transaction.amount.into()),
-            (":memo", transaction.memo.into_value()),
+            (":memo", transaction.memo.into_sql_value()),
             (":account_id", transaction.account_id.into()),
-            (":payee_id", transaction.payee_id.into_value()),
-            (":category_id", transaction.category_id.into_value()),
+            (":payee_id", transaction.payee_id.into_sql_value()),
+            (":category_id", transaction.category_id.into_sql_value()),
             (
                 ":transfer_account_id",
-                transaction.transfer_account_id.into_value(),
+                transaction.transfer_account_id.into_sql_value(),
             ),
             (
                 ":transfer_transaction_id",
-                transaction.transfer_transaction_id.into_value(),
+                transaction.transfer_transaction_id.into_sql_value(),
             ),
             (
                 ":matched_transaction_id",
-                transaction.matched_transaction_id.into_value(),
+                transaction.matched_transaction_id.into_sql_value(),
             ),
             (":account_name", transaction.account_name.into()),
-            (":payee_name", transaction.payee_name.into_value()),
+            (":payee_name", transaction.payee_name.into_sql_value()),
             (":category_name", transaction.category_name.into()),
         ])?;
         statement.next()?;
@@ -131,7 +131,7 @@ impl QueryEngine {
         if let Ok(State::Row) = statement.next() {
             return Some(read_transaction_from_statement(&mut statement));
         }
-        return None;
+        None
     }
 
     pub fn get_transactions_where(
@@ -175,24 +175,24 @@ impl QueryEngine {
             (":id", transaction.id.into()),
             (":date", transaction.date.into()),
             (":amount", transaction.amount.into()),
-            (":memo", transaction.memo.into_value()),
+            (":memo", transaction.memo.into_sql_value()),
             (":account_id", transaction.account_id.into()),
-            (":payee_id", transaction.payee_id.into_value()),
-            (":category_id", transaction.category_id.into_value()),
+            (":payee_id", transaction.payee_id.into_sql_value()),
+            (":category_id", transaction.category_id.into_sql_value()),
             (
                 ":transfer_account_id",
-                transaction.transfer_account_id.into_value(),
+                transaction.transfer_account_id.into_sql_value(),
             ),
             (
                 ":transfer_transaction_id",
-                transaction.transfer_transaction_id.into_value(),
+                transaction.transfer_transaction_id.into_sql_value(),
             ),
             (
                 ":matched_transaction_id",
-                transaction.matched_transaction_id.into_value(),
+                transaction.matched_transaction_id.into_sql_value(),
             ),
             (":account_name", transaction.account_name.into()),
-            (":payee_name", transaction.payee_name.into_value()),
+            (":payee_name", transaction.payee_name.into_sql_value()),
             (":category_name", transaction.category_name.into()),
         ])?;
         statement.next()?;
@@ -212,7 +212,7 @@ fn setup(conn: &Connection) {
     conn.execute(setup_query).expect("Setup query failed");
 }
 
-fn read_transaction_from_statement<'a>(statement: &'a mut Statement) -> Transaction {
+fn read_transaction_from_statement(statement: &mut Statement) -> Transaction {
     Transaction {
         id: statement.read("id").unwrap(),
         budget_id: statement.read("budget_id").unwrap(),
@@ -231,7 +231,7 @@ fn read_transaction_from_statement<'a>(statement: &'a mut Statement) -> Transact
     }
 }
 
-fn read_budget_from_statement<'a>(statement: &'a mut Statement) -> Budget {
+fn read_budget_from_statement(statement: &mut Statement) -> Budget {
     Budget {
         id: statement.read("id").unwrap(),
         name: statement.read("name").unwrap(),

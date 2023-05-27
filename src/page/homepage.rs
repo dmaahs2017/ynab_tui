@@ -3,7 +3,7 @@ use crossterm::event::*;
 
 use crate::{components::*, data_layer::*, util::*};
 use std::{io, time::Duration};
-use tui::{layout::*, style::*, text::*, widgets::*};
+use tui::{layout::*, style::*, widgets::*};
 
 pub struct Homepage {
     budgets: StatefulList<Budget>,
@@ -110,18 +110,18 @@ impl Homepage {
                 noop()
             }
             KeyCode::Char('k') => {
-                if let Some(b) = self.budgets.previous() {
+                if let Some(b) = self.budgets.select_prev() {
                     self.transactions.items = dg.get_transactions(&b.id);
                     self.transactions.unselect()
                 }
-                return noop();
+                noop()
             }
             KeyCode::Char('j') => {
-                if let Some(b) = self.budgets.next() {
+                if let Some(b) = self.budgets.select_next() {
                     self.transactions.items = dg.get_transactions(&b.id);
                     self.transactions.unselect()
                 }
-                return noop();
+                noop()
             }
             KeyCode::Char('/') => {
                 self.page_state = PageState::EditSearch;
@@ -157,11 +157,11 @@ impl Homepage {
 
         match key.code {
             KeyCode::Char('j') => {
-                self.transactions.next();
+                self.transactions.select_next();
                 noop()
             }
             KeyCode::Char('k') => {
-                self.transactions.previous();
+                self.transactions.select_prev();
                 noop()
             }
             KeyCode::Char('h') => {
@@ -227,7 +227,7 @@ impl Page for Homepage {
         let top_left = chunks[0];
         let bottom_left = chunks[1];
 
-        if self.transactions.items.len() > 0 {
+        if self.transactions.items.is_empty() {
             frame.render_stateful_widget(budget_list, bottom_left, &mut self.budgets.state);
             frame.render_widget(search_bar, top_left);
             frame.render_stateful_widget(

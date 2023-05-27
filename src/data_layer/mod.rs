@@ -15,6 +15,9 @@ pub struct DataGateway {
     engine: QueryEngine,
 }
 
+#[rustfmt::skip]
+impl Default for DataGateway { fn default() -> Self { Self::new() } }
+
 impl DataGateway {
     pub fn new() -> Self {
         let token = env::var("YNAB_TOKEN").expect("Ynab token not in env");
@@ -57,7 +60,7 @@ impl DataGateway {
                 date_format: b["date_format"]["format"].as_str().unwrap().to_string(),
             };
 
-            if let Some(_) = self.engine.get_budget(&b.id) {
+            if self.engine.get_budget(&b.id).is_some() {
                 self.engine.update_budget(b)
             } else {
                 self.engine.insert_budget(b)

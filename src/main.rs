@@ -10,11 +10,14 @@ pub struct App {
     data_gate: DataGateway,
 }
 
+#[rustfmt::skip]
+impl Default for App { fn default() -> Self { Self::new() } }
+
 impl App {
     pub fn new() -> Self {
-        let mut data_gate = DataGateway::new();
+        let data_gate = DataGateway::new();
         Self {
-            page_stack: vec![Box::new(Homepage::new(&mut data_gate))],
+            page_stack: vec![Box::new(Homepage::new(&data_gate))],
             restore_stack: vec![],
             data_gate,
         }
@@ -53,7 +56,7 @@ impl App {
                         }
                     }
                     Message::Forward => {
-                        if self.restore_stack.len() > 0 {
+                        if self.restore_stack.is_empty() {
                             self.page_stack.push(self.restore_stack.pop().unwrap());
                         }
                     }

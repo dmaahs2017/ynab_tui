@@ -5,6 +5,9 @@ pub struct StatefulTable<T> {
     pub items: Vec<T>,
 }
 
+#[rustfmt::skip]
+impl<T> Default for StatefulTable<T> { fn default() -> Self { Self::new() } }
+
 impl<T> StatefulTable<T> {
     pub fn new() -> Self {
         Self {
@@ -19,7 +22,7 @@ impl<T> StatefulTable<T> {
         }
     }
 
-    pub fn next(&mut self) -> usize {
+    pub fn select_next(&mut self) -> usize {
         let i = match self.state.selected() {
             Some(i) => {
                 if i >= self.items.len() - 1 {
@@ -34,7 +37,7 @@ impl<T> StatefulTable<T> {
         i
     }
 
-    pub fn previous(&mut self) -> usize {
+    pub fn select_prev(&mut self) -> usize {
         let i = match self.state.selected() {
             Some(i) => {
                 if i == 0 {

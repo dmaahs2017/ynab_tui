@@ -36,7 +36,7 @@ pub fn selected_block() -> Block<'static> {
         .border_style(Style::default().bg(Color::Black))
 }
 
-pub fn list_item<'a>(item: &'a str) -> ListItem<'a> {
+pub fn list_item(item: &str) -> ListItem {
     let lines = vec![Spans::from(item)];
 
     ListItem::new(lines).style(Style::default().fg(Color::Black).bg(Color::White))

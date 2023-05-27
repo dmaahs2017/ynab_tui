@@ -12,15 +12,15 @@ trait TableWidget {
     fn to_table(&self) -> tui::widgets::Table;
 }
 
-trait IntoSpans {
-    fn into_spans(&self) -> Spans;
+trait ToSpan {
+    fn to_span(&self) -> Spans;
 }
 
-impl IntoSpans for Option<String> {
-    fn into_spans(&self) -> Spans {
+impl ToSpan for Option<String> {
+    fn to_span(&self) -> Spans {
         match self {
             None => Spans::from("(empty)"),
-            Some(s) => Spans::from(s.clone()),
+            Some(s) => Spans::from(s.as_str()),
         }
     }
 }
