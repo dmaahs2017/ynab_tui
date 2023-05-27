@@ -18,7 +18,7 @@ impl<T> StatefulList<T> {
     pub fn next(&mut self) -> Option<&T> {
         if self.items.is_empty() {
             self.unselect();
-            return None
+            return None;
         }
 
         let i = match self.state.selected() {

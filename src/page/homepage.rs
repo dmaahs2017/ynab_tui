@@ -29,7 +29,7 @@ impl TableWidget for Vec<Transaction> {
 
         Table::new(table)
             .header(Row::new(vec!["Date", "Payee_Name", "Amount", "Memo"]))
-            .block(Block::default().title("Transactions").borders(Borders::ALL))
+            .block(block().title("Transactions"))
             .highlight_style(selected_style)
             .widths(&[
                 Constraint::Percentage(25),
@@ -71,10 +71,10 @@ impl Homepage {
                         self.page_state = PageState::BudgetSelect;
                         if let Some(b) = self.current_budget() {
                             match dg.get_transactions_where(&b.id, &self.search) {
-                                Ok(ts) => { 
-                                    self.transactions.items = ts ;
+                                Ok(ts) => {
+                                    self.transactions.items = ts;
                                     self.transactions.unselect();
-                                },
+                                }
                                 Err(e) => {
                                     self.page_state =
                                         PageState::ErrState(e.message.unwrap_or_default());
@@ -84,21 +84,25 @@ impl Homepage {
                     }
                     _ => {}
                 }
-                return noop()
+                return noop();
             }
         }
         noop()
     }
 
     fn select_budget(&mut self, event: Event, dg: &mut DataGateway) -> io::Result<Message> {
-        let key = if let Event::Key(key) = event { key } else { return noop() };
+        let key = if let Event::Key(key) = event {
+            key
+        } else {
+            return noop();
+        };
 
         match key.code {
             KeyCode::Char('b') => Ok(Message::Back),
             KeyCode::Char('r') => {
                 if let Err(e) = dg.refresh_db() {
                     self.page_state = PageState::ErrState(e.message.unwrap_or_default());
-                    return noop()
+                    return noop();
                 };
                 self.budgets = StatefulList::with_items(dg.get_budgets());
                 self.transactions.items.clear();
@@ -110,14 +114,14 @@ impl Homepage {
                     self.transactions.items = dg.get_transactions(&b.id);
                     self.transactions.unselect()
                 }
-                return noop()
+                return noop();
             }
             KeyCode::Char('j') => {
                 if let Some(b) = self.budgets.next() {
                     self.transactions.items = dg.get_transactions(&b.id);
                     self.transactions.unselect()
                 }
-                return noop()
+                return noop();
             }
             KeyCode::Char('/') => {
                 self.page_state = PageState::EditSearch;
@@ -140,24 +144,32 @@ impl Homepage {
                 };
                 noop()
             }
-            _ => noop()
+            _ => noop(),
         }
     }
 
     fn navigate_table(&mut self, event: Event) -> io::Result<Message> {
-        let key = if let Event::Key(key) = event { key } else { return noop() };
+        let key = if let Event::Key(key) = event {
+            key
+        } else {
+            return noop();
+        };
 
         match key.code {
             KeyCode::Char('j') => {
                 self.transactions.next();
                 noop()
-            },
+            }
             KeyCode::Char('k') => {
                 self.transactions.previous();
                 noop()
-            },
+            }
             KeyCode::Char('h') => {
                 self.page_state = PageState::BudgetSelect;
+                noop()
+            }
+            KeyCode::Char('/') => {
+                self.page_state = PageState::EditSearch;
                 noop()
             }
             _ => noop(),
@@ -165,6 +177,7 @@ impl Homepage {
     }
 }
 
+#[derive(PartialEq)]
 enum PageState {
     BudgetSelect,
     EditSearch,
@@ -180,26 +193,25 @@ impl Page for Homepage {
             .budgets
             .items
             .iter()
-            .map(|b| {
-                let lines = vec![Spans::from(b.name.clone())];
-                ListItem::new(lines).style(Style::default().fg(Color::Black).bg(Color::White))
-            })
+            .map(|b| list_item(&b.name))
             .collect::<Vec<_>>();
+        let mut budget_list = list(budget_items, "Budgets");
+        if self.page_state == PageState::BudgetSelect {
+            budget_list = budget_list.block(selected_block().title("Budgets"))
+        }
 
-        let budget_list = List::new(budget_items)
-            .block(Block::default().borders(Borders::ALL).title("Budgets"))
-            .highlight_style(
-                Style::default()
-                    .bg(Color::LightGreen)
-                    .add_modifier(Modifier::BOLD),
-            )
-            .highlight_symbol(">> ");
-
-
-        let search_bar = Paragraph::new(self.search.clone())
+        let mut search_bar = Paragraph::new(self.search.clone())
             .style(Style::default().add_modifier(Modifier::RAPID_BLINK))
-            .block(Block::default().borders(Borders::ALL).title("SQL Filter"))
+            .block(block().title("SQL Filter"))
             .wrap(Wrap { trim: false });
+        if self.page_state == PageState::EditSearch {
+            search_bar = search_bar.block(selected_block().title("SQL Filter"));
+        }
+
+        let mut transactions_table = self.transactions.items.to_table();
+        if self.page_state == PageState::NavigateTable {
+            transactions_table = transactions_table.block(selected_block().title("Transactions"))
+        }
 
         let chunks = Layout::default()
             .constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
@@ -216,11 +228,13 @@ impl Page for Homepage {
         let bottom_left = chunks[1];
 
         if self.transactions.items.len() > 0 {
-            let transactions_table = self.transactions.items.to_table();
-
             frame.render_stateful_widget(budget_list, bottom_left, &mut self.budgets.state);
             frame.render_widget(search_bar, top_left);
-            frame.render_stateful_widget(transactions_table, right_area, &mut self.transactions.state);
+            frame.render_stateful_widget(
+                transactions_table,
+                right_area,
+                &mut self.transactions.state,
+            );
         } else {
             frame.render_stateful_widget(budget_list, area, &mut self.budgets.state);
         }
@@ -234,39 +248,27 @@ impl Page for Homepage {
                 "h         Move Left",
                 "ctrl-c    Quit",
                 "/         Edit Filter Query",
-            ].join("\n");
-
-            let help_popup = Paragraph::new(help_text)
-                .wrap(Wrap { trim: false })
-                .block(Block::default().borders(Borders::ALL).title("Help"))
-                .alignment(Alignment::Left);
-            let popup_area = centered_rect(30, 70, area);
-            frame.render_widget(Clear, popup_area);
-            frame.render_widget(help_popup, popup_area);
+            ]
+            .join("\n");
+            render_popup_message(30, 70, area, Alignment::Left, &help_text, frame);
         }
-        if let PageState::ErrState(message) = &self.page_state {
-            let err_popup = Paragraph::new(message.clone())
-                .wrap(Wrap { trim: false })
-                .block(Block::default().borders(Borders::ALL).title("Error"))
-                .alignment(Alignment::Center);
 
-            let popup_area = centered_rect(30, 30, area);
-            frame.render_widget(Clear, popup_area);
-            frame.render_widget(err_popup, popup_area);
+        if let PageState::ErrState(message) = &self.page_state {
+            render_popup_message(30, 30, area, Alignment::Center, message, frame)
         }
     }
 
     fn update(&mut self, dg: &mut DataGateway) -> io::Result<Message> {
         if let Ok(false) = poll(Duration::from_millis(200)) {
-            return noop()
+            return noop();
         }
         let event = read()?;
 
         // Global Keybinds, override any PageState Keybinds
-        if let Event::Key(key) = event { 
+        if let Event::Key(key) = event {
             if key.modifiers.contains(KeyModifiers::CONTROL) {
                 match key.code {
-                    KeyCode::Char('c') => { return Ok(Message::Quit) },
+                    KeyCode::Char('c') => return Ok(Message::Quit),
                     KeyCode::Char('h') => {
                         self.page_state = PageState::OverlayHelp;
                         return noop();
@@ -280,11 +282,11 @@ impl Page for Homepage {
             PageState::ErrState(_) => {
                 self.page_state = PageState::BudgetSelect;
                 noop()
-            },
+            }
             PageState::OverlayHelp => {
                 self.page_state = PageState::BudgetSelect;
                 noop()
-            },
+            }
             PageState::EditSearch => self.edit_search(event, dg),
             PageState::BudgetSelect => self.select_budget(event, dg),
             PageState::NavigateTable => self.navigate_table(event),
