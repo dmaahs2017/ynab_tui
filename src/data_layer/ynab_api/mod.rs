@@ -1,10 +1,8 @@
-mod response_models;
-use response_models::*;
-
 use chrono::{DateTime, Duration, Local};
 use reqwest::blocking::Client;
 use reqwest::{header, header::HeaderMap};
 use serde::{Deserialize, Serialize};
+use serde_json::{self, Value as JsonValue};
 use std::{collections::HashMap, fs, io};
 
 type ApiResult<T> = Result<T, Box<dyn std::error::Error>>;
@@ -73,11 +71,12 @@ impl YnabApi {
         }
     }
 
-    fn get(&mut self, endpoint: &str) -> ApiResult<String> {
+    fn get(&mut self, endpoint: &str) -> ApiResult<JsonValue> {
         if let Some(cache_entry) = self.cache.get(endpoint) {
             if Local::now() - cache_entry.datetime < self.refresh_duration && !self.force_refresh {
                 self.cache_hit += 1;
-                return Ok(cache_entry.response_json.clone());
+                let serde_json = serde_json::from_str(&cache_entry.response_json)?;
+                return Ok(serde_json);
             }
         }
         self.cache_miss += 1;
@@ -102,16 +101,14 @@ impl YnabApi {
                 response_json: resp.clone(),
             },
         );
-        Ok(resp)
+
+        Ok(serde_json::from_str(&resp)?)
     }
 
     /// TODO: Implement include accounts feature
-    pub fn list_budgets(
-        &mut self,
-        _include_accounts: bool,
-    ) -> ApiResult<Data<BudgetSummaryResponse>> {
+    pub fn list_budgets(&mut self, _include_accounts: bool) -> ApiResult<JsonValue> {
         let endp = "/budgets";
-        Ok(serde_json::from_str(&self.get(endp)?)?)
+        self.get(endp)
     }
 
     /// TODO
@@ -120,13 +117,13 @@ impl YnabApi {
         &mut self,
         _budget_id: &str,
         _last_knowledge_of_server: Option<i32>,
-    ) -> ApiResult<Data<()>> {
+    ) -> ApiResult<JsonValue> {
         todo!("GET /budgets/{_budget_id}")
     }
 
     /// TODO
     #[allow(dead_code)]
-    pub fn budget_settings(&mut self, _budget_id: &str) -> ApiResult<Data<()>> {
+    pub fn budget_settings(&mut self, _budget_id: &str) -> ApiResult<JsonValue> {
         todo!("GET /budgets/{_budget_id}/settings")
     }
 
@@ -136,7 +133,7 @@ impl YnabApi {
         &mut self,
         _budget_id: &str,
         _last_knowledge_of_server: Option<i32>,
-    ) -> ApiResult<Data<()>> {
+    ) -> ApiResult<JsonValue> {
         todo!("GET /budgets/{_budget_id}/accounts")
     }
 
@@ -148,20 +145,20 @@ impl YnabApi {
         _name: &str,
         _type: &str,
         _balance: i64,
-    ) -> ApiResult<Data<()>> {
+    ) -> ApiResult<JsonValue> {
         todo!("POST /budgets/{_budget_id}/accounts")
     }
 
     /// TODO
     #[allow(dead_code)]
-    pub fn get_account(&mut self, _budget_id: &str, _account_id: &str) -> ApiResult<Data<()>> {
+    pub fn get_account(&mut self, _budget_id: &str, _account_id: &str) -> ApiResult<JsonValue> {
         todo!("GET /budgets/{_budget_id}/accounts/{_account_id}")
     }
 
     #[allow(dead_code)]
-    pub fn list_categories(&mut self, budget_id: &str) -> ApiResult<Data<CategoriesResponse>> {
+    pub fn list_categories(&mut self, budget_id: &str) -> ApiResult<JsonValue> {
         let endp = &format!("/budgets/{budget_id}/categories");
-        Ok(serde_json::from_str(&self.get(endp)?)?)
+        self.get(endp)
     }
 
     #[allow(dead_code)]
@@ -169,9 +166,9 @@ impl YnabApi {
         &mut self,
         budget_id: &str,
         category_id: &str,
-    ) -> ApiResult<Data<HybridTransactionsResponse>> {
+    ) -> ApiResult<JsonValue> {
         let endp = &format!("/budgets/{budget_id}/categories/{category_id}/transactions");
-        Ok(serde_json::from_str(&self.get(endp)?)?)
+        self.get(endp)
     }
 
     //TODO: Implement since_date, and trans_type
@@ -181,14 +178,14 @@ impl YnabApi {
         _since_date: Option<DateTime<Local>>,
         _trans_type: Option<String>,
         last_knowledge: Option<usize>,
-    ) -> ApiResult<Data<TransactionsResponse>> {
+    ) -> ApiResult<JsonValue> {
         let endp = &if let Some(lk) = last_knowledge {
             format!("/budgets/{budget_id}/transactions?last_knowledge_of_server={lk}")
         } else {
             format!("/budgets/{budget_id}/transactions")
         };
 
-        Ok(serde_json::from_str(&self.get(endp)?)?)
+        self.get(endp)
     }
 }
 

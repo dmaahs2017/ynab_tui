@@ -1,26 +1,25 @@
 use super::models::*;
-use sqlite::Result;
-use sqlite::{self, Connection, State, Value};
+use sqlite::{self, Connection, Result, State, Statement, Value as SqlValue};
 
 trait IntoValue {
-    fn into_value(self) -> Value;
+    fn into_value(self) -> SqlValue;
 }
 
 impl IntoValue for Option<String> {
-    fn into_value(self) -> Value {
+    fn into_value(self) -> SqlValue {
         match self {
-            None => Value::Null,
-            Some(s) => Value::String(s),
+            None => SqlValue::Null,
+            Some(s) => SqlValue::String(s.to_string()),
         }
     }
 }
 
 impl IntoValue for bool {
-    fn into_value(self) -> Value {
+    fn into_value(self) -> SqlValue {
         if self {
-            Value::Integer(1)
+            SqlValue::Integer(1)
         } else {
-            Value::Integer(0)
+            SqlValue::Integer(0)
         }
     }
 }
@@ -43,14 +42,7 @@ impl QueryEngine {
             .bind((":id", budget_id))
             .expect("Failed to bind prepared statement");
         if let Ok(State::Row) = statement.next() {
-            return Some(Budget {
-                id: statement.read("id").unwrap(),
-                name: statement.read("name").unwrap(),
-                last_modified_on: statement.read("last_modified_on").unwrap(),
-                first_month: statement.read("first_month").unwrap(),
-                last_month: statement.read("last_month").unwrap(),
-                date_format: statement.read("date_format").unwrap(),
-            });
+            return Some(read_budget_from_statement(&mut statement));
         }
         return None;
     }
@@ -60,14 +52,7 @@ impl QueryEngine {
         let mut statement = self.conn.prepare(query).expect("Prepared select failed");
         let mut output = vec![];
         while let Ok(State::Row) = statement.next() {
-            output.push(Budget {
-                id: statement.read("id").unwrap(),
-                name: statement.read("name").unwrap(),
-                last_modified_on: statement.read("last_modified_on").unwrap(),
-                first_month: statement.read("first_month").unwrap(),
-                last_month: statement.read("last_month").unwrap(),
-                date_format: statement.read("date_format").unwrap(),
-            });
+            output.push(read_budget_from_statement(&mut statement));
         }
         return output;
     }
@@ -76,7 +61,7 @@ impl QueryEngine {
         let query = include_str!("queries/insert_budget.sql");
         let mut statement = self.conn.prepare(query).expect("Insert failed");
         statement
-            .bind_iter::<_, (_, Value)>([
+            .bind_iter::<_, (_, SqlValue)>([
                 (":id", budget.id.into()),
                 (":name", budget.name.into()),
                 (":last_modified_on", budget.last_modified_on.into()),
@@ -92,7 +77,7 @@ impl QueryEngine {
         let query = include_str!("queries/update_budget.sql");
         let mut statement = self.conn.prepare(query).expect("Insert failed");
         statement
-            .bind_iter::<_, (_, Value)>([
+            .bind_iter::<_, (_, SqlValue)>([
                 (":id", budget.id.into()),
                 (":name", budget.name.into()),
                 (":last_modified_on", budget.last_modified_on.into()),
@@ -107,7 +92,7 @@ impl QueryEngine {
     pub fn insert_transaction(&self, transaction: Transaction) -> Result<()> {
         let query = include_str!("queries/insert_transaction.sql");
         let mut statement = self.conn.prepare(query)?;
-        statement.bind_iter::<_, (_, Value)>([
+        statement.bind_iter::<_, (_, SqlValue)>([
             (":id", transaction.id.into()),
             (":budget_id", transaction.budget_id.into()),
             (":date", transaction.date.into()),
@@ -144,22 +129,7 @@ impl QueryEngine {
             .expect("Failed to bind prepared statement");
 
         if let Ok(State::Row) = statement.next() {
-            return Some(Transaction {
-                id: statement.read("id").unwrap(),
-                budget_id: statement.read("budget_id").unwrap(),
-                date: statement.read("date").unwrap(),
-                amount: statement.read("amount").unwrap(),
-                memo: statement.read("memo").unwrap(),
-                account_id: statement.read("account_id").unwrap(),
-                payee_id: statement.read("payee_id").unwrap(),
-                category_id: statement.read("category_id").unwrap(),
-                transfer_account_id: statement.read("transfer_account_id").unwrap(),
-                transfer_transaction_id: statement.read("transfer_transaction_id").unwrap(),
-                matched_transaction_id: statement.read("matched_transaction_id").unwrap(),
-                account_name: statement.read("account_name").unwrap(),
-                payee_name: statement.read("payee_name").unwrap(),
-                category_name: statement.read("category_name").unwrap(),
-            });
+            return Some(read_transaction_from_statement(&mut statement));
         }
         return None;
     }
@@ -179,22 +149,7 @@ impl QueryEngine {
 
         let mut output = vec![];
         while let Ok(State::Row) = statement.next() {
-            output.push(Transaction {
-                id: statement.read("id").unwrap(),
-                budget_id: statement.read("budget_id").unwrap(),
-                date: statement.read("date").unwrap(),
-                amount: statement.read("amount").unwrap(),
-                memo: statement.read("memo").unwrap(),
-                account_id: statement.read("account_id").unwrap(),
-                payee_id: statement.read("payee_id").unwrap(),
-                category_id: statement.read("category_id").unwrap(),
-                transfer_account_id: statement.read("transfer_account_id").unwrap(),
-                transfer_transaction_id: statement.read("transfer_transaction_id").unwrap(),
-                matched_transaction_id: statement.read("matched_transaction_id").unwrap(),
-                account_name: statement.read("account_name").unwrap(),
-                payee_name: statement.read("payee_name").unwrap(),
-                category_name: statement.read("category_name").unwrap(),
-            });
+            output.push(read_transaction_from_statement(&mut statement));
         }
         Ok(output)
     }
@@ -208,22 +163,7 @@ impl QueryEngine {
 
         let mut output = vec![];
         while let Ok(State::Row) = statement.next() {
-            output.push(Transaction {
-                id: statement.read("id").unwrap(),
-                budget_id: statement.read("budget_id").unwrap(),
-                date: statement.read("date").unwrap(),
-                amount: statement.read("amount").unwrap(),
-                memo: statement.read("memo").unwrap(),
-                account_id: statement.read("account_id").unwrap(),
-                payee_id: statement.read("payee_id").unwrap(),
-                category_id: statement.read("category_id").unwrap(),
-                transfer_account_id: statement.read("transfer_account_id").unwrap(),
-                transfer_transaction_id: statement.read("transfer_transaction_id").unwrap(),
-                matched_transaction_id: statement.read("matched_transaction_id").unwrap(),
-                account_name: statement.read("account_name").unwrap(),
-                payee_name: statement.read("payee_name").unwrap(),
-                category_name: statement.read("category_name").unwrap(),
-            });
+            output.push(read_transaction_from_statement(&mut statement));
         }
         output
     }
@@ -270,4 +210,34 @@ impl QueryEngine {
 fn setup(conn: &Connection) {
     let setup_query = include_str!("migrations/up.sql");
     conn.execute(setup_query).expect("Setup query failed");
+}
+
+fn read_transaction_from_statement<'a>(statement: &'a mut Statement) -> Transaction {
+    Transaction {
+        id: statement.read("id").unwrap(),
+        budget_id: statement.read("budget_id").unwrap(),
+        date: statement.read("date").unwrap(),
+        amount: statement.read("amount").unwrap(),
+        memo: statement.read("memo").ok(),
+        account_id: statement.read("account_id").unwrap(),
+        payee_id: statement.read("payee_id").ok(),
+        category_id: statement.read("category_id").ok(),
+        transfer_account_id: statement.read("transfer_account_id").ok(),
+        transfer_transaction_id: statement.read("transfer_transaction_id").ok(),
+        matched_transaction_id: statement.read("matched_transaction_id").ok(),
+        account_name: statement.read("account_name").unwrap(),
+        payee_name: statement.read("payee_name").ok(),
+        category_name: statement.read("category_name").unwrap(),
+    }
+}
+
+fn read_budget_from_statement<'a>(statement: &'a mut Statement) -> Budget {
+    Budget {
+        id: statement.read("id").unwrap(),
+        name: statement.read("name").unwrap(),
+        last_modified_on: statement.read("last_modified_on").unwrap(),
+        first_month: statement.read("first_month").unwrap(),
+        last_month: statement.read("last_month").unwrap(),
+        date_format: statement.read("date_format").unwrap(),
+    }
 }

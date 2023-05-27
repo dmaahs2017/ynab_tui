@@ -1,5 +1,6 @@
 use super::*;
 use crate::data_layer::models::*;
+use crate::data_layer::DataGateway;
 
 use crossterm::event::*;
 use std::io;
@@ -17,12 +18,12 @@ impl BudgetPage {
 
 impl Page for BudgetPage {
     fn ui(&mut self, frame: &mut Frame<CrosstermBackend<io::Stdout>>, area: Rect) {
-        let p = Paragraph::new(self.budget.name.to_string())
+        let p = Paragraph::new(self.budget.name.as_str())
             .block(Block::default().title("Page 2").borders(Borders::ALL));
         frame.render_widget(p, area);
     }
 
-    fn update(&mut self) -> io::Result<Message> {
+    fn update(&mut self, _dg: &mut DataGateway) -> io::Result<Message> {
         if let Event::Key(key) = read()? {
             match key.code {
                 KeyCode::Char('q') => return Ok(Message::Quit),

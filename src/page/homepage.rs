@@ -39,10 +39,9 @@ impl TableWidget for Vec<Transaction> {
 }
 
 impl Homepage {
-    pub fn new() -> Self {
-        let gateway = DataGateway::new();
+    pub fn new(data_gate: &DataGateway) -> Self {
         Self {
-            budgets: StatefulList::with_items(gateway.get_budgets()),
+            budgets: StatefulList::with_items(data_gate.get_budgets()),
             transactions: vec![],
             page_state: PageState::BudgetSelect,
             search: String::new(),
@@ -140,7 +139,7 @@ impl Page for Homepage {
         }
     }
 
-    fn update(&mut self) -> io::Result<Message> {
+    fn update(&mut self, dg: &mut DataGateway) -> io::Result<Message> {
         if let Ok(false) = poll(Duration::from_millis(200)) {
             return Ok(Message::Noop);
         }
@@ -157,7 +156,6 @@ impl Page for Homepage {
                     KeyCode::Enter => {
                         self.page_state = PageState::BudgetSelect;
                         if let Some(b) = self.current_budget() {
-                            let dg = DataGateway::new();
                             match dg.get_transactions_where(&b.id, &self.search) {
                                 Ok(ts) => self.transactions = ts,
                                 Err(e) => {
@@ -181,7 +179,6 @@ impl Page for Homepage {
                 KeyCode::Char('q') => return Ok(Message::Quit),
                 KeyCode::Char('b') => return Ok(Message::Back),
                 KeyCode::Char('r') => {
-                    let mut dg = DataGateway::new();
                     if let Err(e) = dg.refresh_db() {
                         self.page_state = PageState::ErrState(e.message.unwrap_or_default());
                         return Ok(Message::Noop);
@@ -193,7 +190,6 @@ impl Page for Homepage {
                 KeyCode::Char('k') => {
                     self.select_prev_budget();
                     if let Some(b) = self.current_budget() {
-                        let dg = DataGateway::new();
                         self.transactions = dg.get_transactions(&b.id);
                     }
                     return Ok(Message::Noop);
@@ -201,7 +197,6 @@ impl Page for Homepage {
                 KeyCode::Char('j') => {
                     self.select_next_budget();
                     if let Some(b) = self.current_budget() {
-                        let dg = DataGateway::new();
                         self.transactions = dg.get_transactions(&b.id);
                     }
                     return Ok(Message::Noop);

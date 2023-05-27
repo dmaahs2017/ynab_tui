@@ -1,4 +1,4 @@
-use ynab_tui::page::*;
+use ynab_tui::{data_layer::DataGateway, page::*};
 
 use crossterm::{event::*, terminal::*, *};
 use std::io;
@@ -7,13 +7,16 @@ use tui::{backend::*, layout::*, widgets::*, *};
 pub struct App {
     page_stack: Vec<Box<dyn Page>>,
     restore_stack: Vec<Box<dyn Page>>,
+    data_gate: DataGateway,
 }
 
 impl App {
     pub fn new() -> Self {
+        let mut data_gate = DataGateway::new();
         Self {
-            page_stack: vec![Box::new(Homepage::new())],
+            page_stack: vec![Box::new(Homepage::new(&mut data_gate))],
             restore_stack: vec![],
+            data_gate,
         }
     }
 
@@ -41,7 +44,7 @@ impl App {
                     page.ui(f, page_area);
                 })?;
 
-                let msg = page.update()?;
+                let msg = page.update(&mut self.data_gate)?;
                 match msg {
                     Message::Quit => break,
                     Message::Back => {
