@@ -6,7 +6,7 @@ use std::{io, time::Duration};
 use tui::layout::*;
 
 #[derive(Clone)]
-pub struct BudgetPage {
+pub struct AccountsPage {
     budget: Budget,
     accounts: StatefulList<Account>,
     transactions: StatefulTable<Transaction>,
@@ -15,14 +15,21 @@ pub struct BudgetPage {
 }
 
 
-impl BudgetPage {
+impl AccountsPage {
     pub fn new(budget: Budget, api: &mut YnabApi) -> Self {
-        let accounts = api.list_accounts(&budget.id).unwrap();
-        let transactions = api.list_transactions(&budget.id, None).unwrap();
+        let account_list = api.list_accounts(&budget.id).unwrap();
+        let transactions_list = api.list_transactions(&budget.id, None).unwrap();
+
+        let mut accounts = StatefulList::new();
+        accounts.set_items(account_list).set_title("Accounts").focus();
+
+        let mut transactions = StatefulTable::new();
+        transactions.set_items(transactions_list).set_title("Transactions");
+
         Self {
             budget,
-            accounts: StatefulList::with_items(accounts),
-            transactions: StatefulTable::with_items(transactions),
+            accounts,
+            transactions,
             page_state: PageState::AccountSelect,
             command_pallete: Default::default(),
         }
@@ -61,7 +68,7 @@ impl BudgetPage {
         match key.code {
             KeyCode::Char('b') => Ok(Message::Back),
             KeyCode::Char('r') => {
-                self.accounts = StatefulList::with_items(api.list_accounts(&self.budget.id).unwrap());
+                self.accounts.set_items(api.list_accounts(&self.budget.id).unwrap());
                 noop()
             }
             KeyCode::Char('k') => {
@@ -83,6 +90,8 @@ impl BudgetPage {
                 noop()
             }
             KeyCode::Char('l') => {
+                self.accounts.unfocus();
+                self.transactions.focus();
                 self.page_state = PageState::NavigateTable;
                 noop()
             }
@@ -115,6 +124,8 @@ impl BudgetPage {
                 noop()
             }
             KeyCode::Char('h') => {
+                self.transactions.unfocus();
+                self.accounts.focus();
                 self.page_state = PageState::AccountSelect;
                 noop()
             }
@@ -151,22 +162,22 @@ impl PageState {
     }
 }
 
-impl Page for BudgetPage {
+impl Page for AccountsPage {
     fn ui(&mut self, frame: &mut Frame<CrosstermBackend<io::Stdout>>, area: Rect) {
-        let account_list = self.accounts.ui("Accounts", self.page_state == PageState::AccountSelect);
-        let transactions_table = self.transactions.ui("Transactions", self.page_state == PageState::NavigateTable);
         let command_pallete = self.command_pallete.ui("Search", self.page_state.is_edit());
 
 
         if self.command_pallete.is_empty() && !self.page_state.is_edit() {
             let (master, stack) = master_stack_layout(1, 80, area);
-            frame.render_stateful_widget(transactions_table, master, self.transactions.get_state_mut());
-            frame.render_stateful_widget(account_list, stack[0], self.accounts.get_state_mut());
+
+            self.transactions.render(frame, master);
+            self.accounts.render(frame , stack[0]);
         } else {
             let (area, pallete_area) = split_vertical(90, area);
             let (master, stack) = master_stack_layout(1, 80, area);
-            frame.render_stateful_widget(transactions_table, master, self.transactions.get_state_mut());
-            frame.render_stateful_widget(account_list, stack[0], self.accounts.get_state_mut());
+
+            self.transactions.render(frame, master);
+            self.accounts.render(frame, stack[0]);
             frame.render_widget(command_pallete, pallete_area);
         }
 
@@ -218,14 +229,18 @@ impl Page for BudgetPage {
                 self.page_state = PageState::AccountSelect;
                 noop()
             }
-            PageState::EditCommand(prev_state) => self.edit_command(event, *prev_state),
-            PageState::AccountSelect => self.select_account(event, api),
+            PageState::EditCommand(prev_state) => {
+                self.edit_command(event, *prev_state)
+            },
+            PageState::AccountSelect => {
+                self.select_account(event, api)
+            },
             PageState::NavigateTable => self.navigate_table(event),
         }
     }
 
     fn name(&self) -> String {
-        String::from("BudgetPage")
+        self.accounts.get_selected().map(|a| a.name.clone()).unwrap_or("All Accounts".to_string())
     }
 }
 

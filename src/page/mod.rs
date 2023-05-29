@@ -1,36 +1,16 @@
-mod budget_page;
+mod account_page;
 mod homepage;
-pub use budget_page::*;
+pub use account_page::*;
 pub use homepage::*;
 
-use crate::{
-    components::*,
-    data_layer::{models::*, YnabApi},
-    util::*,
-};
+use crate::data_layer::{models::*, YnabApi};
 use std::io;
 use tui::{
     backend::CrosstermBackend,
-    layout::{Rect, *},
-    style::*,
-    text::Spans,
-    widgets::*,
+    layout::Rect,
     Frame,
 };
 
-
-trait ToSpan {
-    fn to_span(&self) -> Spans;
-}
-
-impl ToSpan for Option<String> {
-    fn to_span(&self) -> Spans {
-        match self {
-            None => Spans::from("(empty)"),
-            Some(s) => Spans::from(s.as_str()),
-        }
-    }
-}
 
 pub enum Message {
     Back,

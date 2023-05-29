@@ -30,13 +30,13 @@ pub fn block() -> Block<'static> {
     Block::default().borders(Borders::ALL)
 }
 
-pub fn selected_block() -> Block<'static> {
+pub fn active_block() -> Block<'static> {
     Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().bg(Color::Black))
 }
 
-pub fn list_item(item: &str) -> ListItem {
+pub fn list_item<'a>(item: String) -> ListItem<'a> {
     let lines = vec![Spans::from(item)];
 
     ListItem::new(lines).style(Style::default().fg(Color::Black).bg(Color::White))
