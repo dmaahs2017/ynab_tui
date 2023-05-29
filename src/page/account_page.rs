@@ -6,7 +6,7 @@ use std::{io, time::Duration};
 use tui::layout::*;
 
 #[derive(Clone)]
-pub struct BudgetPage {
+pub struct AccountsPage {
     budget: Budget,
     accounts: StatefulList<Account>,
     transactions: StatefulTable<Transaction>,
@@ -15,7 +15,7 @@ pub struct BudgetPage {
 }
 
 
-impl BudgetPage {
+impl AccountsPage {
     pub fn new(budget: Budget, api: &mut YnabApi) -> Self {
         let accounts = api.list_accounts(&budget.id).unwrap();
         let transactions = api.list_transactions(&budget.id, None).unwrap();
@@ -151,7 +151,7 @@ impl PageState {
     }
 }
 
-impl Page for BudgetPage {
+impl Page for AccountsPage {
     fn ui(&mut self, frame: &mut Frame<CrosstermBackend<io::Stdout>>, area: Rect) {
         let account_list = self.accounts.ui("Accounts", self.page_state == PageState::AccountSelect);
         let transactions_table = self.transactions.ui("Transactions", self.page_state == PageState::NavigateTable);
@@ -225,7 +225,7 @@ impl Page for BudgetPage {
     }
 
     fn name(&self) -> String {
-        String::from("BudgetPage")
+        self.accounts.get_selected().map(|a| a.name.clone()).unwrap_or("All Accounts".to_string())
     }
 }
 

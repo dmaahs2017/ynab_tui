@@ -39,7 +39,7 @@ impl Homepage {
             }
             KeyCode::Enter => {
                 if let Some(budget) = self.budgets.get_selected() {
-                    return Ok(Message::NewPage(Box::new(BudgetPage::new(
+                    return Ok(Message::NewPage(Box::new(AccountsPage::new(
                         budget.clone(),
                         api,
                     ))));
