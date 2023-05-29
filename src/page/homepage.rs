@@ -38,7 +38,7 @@ impl Homepage {
                 noop()
             }
             KeyCode::Enter => {
-                if let Some(budget) = self.budgets.get_current() {
+                if let Some(budget) = self.budgets.get_selected() {
                     return Ok(Message::NewPage(Box::new(BudgetPage::new(
                         budget.clone(),
                         api,
@@ -58,18 +58,8 @@ enum PageState {
 
 impl Page for Homepage {
     fn ui(&mut self, frame: &mut Frame<CrosstermBackend<io::Stdout>>, area: Rect) {
-        let budget_items = self
-            .budgets
-            .items
-            .iter()
-            .map(|b| list_item(&b.name))
-            .collect::<Vec<_>>();
-        let mut budget_list = list(budget_items, "Budgets");
-        if self.page_state == PageState::BudgetSelect {
-            budget_list = budget_list.block(selected_block().title("Select a Budget"))
-        }
-
-        frame.render_stateful_widget(budget_list, area, &mut self.budgets.state);
+        let budget_list = self.budgets.ui("Budgets", self.page_state == PageState::BudgetSelect);
+        frame.render_stateful_widget(budget_list, area, self.budgets.get_state_mut());
     }
 
     fn update(&mut self, api: &mut YnabApi) -> io::Result<Message> {

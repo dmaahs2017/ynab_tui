@@ -1,9 +1,21 @@
 use tui::widgets::*;
 
+use crate::{data_layer::models::*, util::force_mut_ref};
+
+use super::helpers::*;
+
 #[derive(Default, Clone)]
 pub struct StatefulList<T> {
-    pub state: ListState,
-    pub items: Vec<T>,
+    state: ListState,
+    items: Vec<T>,
+}
+
+impl<T> std::ops::Index<usize> for StatefulList<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.items[index]
+    }
 }
 
 impl<T> StatefulList<T> {
@@ -14,7 +26,17 @@ impl<T> StatefulList<T> {
         }
     }
 
-    pub fn get_current(&self) -> Option<&T> {
+    pub fn get_state(&self) -> &ListState {
+        &self.state
+    }
+
+    pub fn get_state_mut(&self) -> &mut ListState {
+        unsafe {
+            force_mut_ref(&self.state)
+        }
+    }
+
+    pub fn get_selected(&self) -> Option<&T> {
         let i = self.state.selected()?;
         self.items.get(i)
     }
@@ -63,5 +85,36 @@ impl<T> StatefulList<T> {
 
     pub fn unselect(&mut self) {
         self.state.select(None);
+    }
+
+}
+
+impl StatefulList<Budget> {
+    pub fn ui<'a, 'b:'a>(&'a self, title: &'b str, selected: bool) -> List {
+        let budget_items = self
+            .items
+            .iter()
+            .map(|budget| list_item(&budget.name))
+            .collect::<Vec<_>>();
+        let mut budget_list = list(budget_items, title);
+        if selected {
+            budget_list = budget_list.block(selected_block().title(title))
+        }
+        budget_list
+    }
+}
+
+impl StatefulList<Account> {
+    pub fn ui<'a, 'b: 'a>(&'a self, title: &'b str, selected: bool) -> List<'a> {
+        let account_list_items = self
+            .items
+            .iter()
+            .map(|account| list_item(&account.name))
+            .collect::<Vec<_>>();
+        let mut account_list = list(account_list_items, title);
+        if selected {
+            account_list = account_list.block(selected_block().title(title))
+        }
+        account_list
     }
 }
