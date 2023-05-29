@@ -1,14 +1,14 @@
-use ynab_tui::{data_layer::DataGateway, page::*};
+use chrono::Duration;
+use ynab_tui::{data_layer::YnabApi, page::*};
 
 use crossterm::{event::*, terminal::*, *};
 use std::io;
 use tui::{backend::*, layout::*, widgets::*, *};
 
-
 pub struct App {
     page_stack: Vec<Box<dyn Page>>,
     restore_stack: Vec<Box<dyn Page>>,
-    data_gate: DataGateway,
+    api: YnabApi,
 }
 
 #[rustfmt::skip]
@@ -16,11 +16,14 @@ impl Default for App { fn default() -> Self { Self::new() } }
 
 impl App {
     pub fn new() -> Self {
-        let data_gate = DataGateway::new();
+        let ynab_token = dotenvy::var("YNAB_TOKEN").expect("YNAB_TOKEN not definded in .env file");
+        let ynab_cache_file =
+            dotenvy::var("YNAB_CACHE_FILE").expect("YNAB_CACHE_FILE not defined in .env file");
+        let mut api = YnabApi::new(&ynab_token, &ynab_cache_file, Duration::hours(1));
         Self {
-            page_stack: vec![Box::new(Homepage::new(&data_gate))],
+            page_stack: vec![Box::new(Homepage::new(&mut api))],
             restore_stack: vec![],
-            data_gate,
+            api,
         }
     }
 
@@ -46,7 +49,7 @@ impl App {
                 page.ui(f, page_area);
             })?;
 
-            let msg = page.update(&mut self.data_gate)?;
+            let msg = page.update(&mut self.api)?;
 
             match msg {
                 Message::Quit => break,

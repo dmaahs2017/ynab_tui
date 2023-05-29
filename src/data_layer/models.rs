@@ -11,17 +11,19 @@ pub struct Budget {
 #[derive(PartialEq, Eq, Clone)]
 pub struct Transaction {
     pub id: String,
-    pub budget_id: String,
     pub date: String, //date string The transaction date in ISO format (e.g. 2016-12-01)
     pub amount: i64,
     pub memo: Option<String>,
-    pub account_id: String,                  //Unique
-    pub payee_id: Option<String>,            //Unique
-    pub category_id: Option<String>,         //Unique
-    pub transfer_account_id: Option<String>, //Unique
-    pub transfer_transaction_id: Option<String>,
-    pub matched_transaction_id: Option<String>,
+    pub account_id: String,          //Unique
+    pub payee_id: Option<String>,    //Unique
+    pub category_id: Option<String>, //Unique
     pub account_name: String,
     pub payee_name: Option<String>,
     pub category_name: String,
+}
+
+#[derive(PartialEq, Eq, Clone)]
+pub struct Account {
+    pub id: String,
+    pub name: String,
 }

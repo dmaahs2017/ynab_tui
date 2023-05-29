@@ -1,6 +1,6 @@
 use tui::widgets::*;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct StatefulList<T> {
     pub state: ListState,
     pub items: Vec<T>,
@@ -12,6 +12,11 @@ impl<T> StatefulList<T> {
             state: ListState::default(),
             items,
         }
+    }
+
+    pub fn get_current(&self) -> Option<&T> {
+        let i = self.state.selected()?;
+        self.items.get(i)
     }
 
     /// Returns the new selected index or None if the list is empty

@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{self, Value as JsonValue};
 use std::{collections::HashMap, fs, io};
 
+use super::models::{Account, Budget, Transaction};
+
 type ApiResult<T> = Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Debug)]
@@ -106,86 +108,94 @@ impl YnabApi {
     }
 
     /// TODO: Implement include accounts feature
-    pub fn list_budgets(&mut self, _include_accounts: bool) -> ApiResult<JsonValue> {
+    pub fn list_budgets(&mut self) -> ApiResult<Vec<Budget>> {
         let endp = "/budgets";
-        self.get(endp)
+        let response = self.get(endp)?;
+
+        Ok(response["data"]["budgets"]
+            .as_array()
+            .unwrap()
+            .into_iter()
+            .map(|bj| Budget {
+                id: bj["id"].as_str().unwrap().to_string(),
+                name: bj["name"].as_str().unwrap().to_string(),
+                last_modified_on: bj["last_modified_on"].as_str().unwrap().to_string(),
+                first_month: bj["first_month"].as_str().unwrap().to_string(),
+                last_month: bj["last_month"].as_str().unwrap().to_string(),
+                date_format: bj["date_format"]["format"].as_str().unwrap().to_string(),
+            })
+            .collect())
     }
 
-    /// TODO
-    #[allow(dead_code)]
-    pub fn get_budget(
-        &mut self,
-        _budget_id: &str,
-        _last_knowledge_of_server: Option<i32>,
-    ) -> ApiResult<JsonValue> {
-        todo!("GET /budgets/{_budget_id}")
+    pub fn list_accounts(&mut self, budget_id: &str) -> ApiResult<Vec<Account>> {
+        let endp = &format!("/budgets/{budget_id}/accounts");
+        let response = self.get(endp)?;
+
+        Ok(response["data"]["accounts"]
+            .as_array()
+            .unwrap()
+            .into_iter()
+            .map(|bj| Account {
+                id: bj["id"].as_str().unwrap().to_string(),
+                name: bj["name"].as_str().unwrap().to_string(),
+            })
+            .collect())
     }
 
-    /// TODO
-    #[allow(dead_code)]
-    pub fn budget_settings(&mut self, _budget_id: &str) -> ApiResult<JsonValue> {
-        todo!("GET /budgets/{_budget_id}/settings")
-    }
-
-    /// TODO
-    #[allow(dead_code)]
-    pub fn list_accounts(
-        &mut self,
-        _budget_id: &str,
-        _last_knowledge_of_server: Option<i32>,
-    ) -> ApiResult<JsonValue> {
-        todo!("GET /budgets/{_budget_id}/accounts")
-    }
-
-    /// TODO
-    #[allow(dead_code)]
-    pub fn create_account(
-        &mut self,
-        _budget_id: &str,
-        _name: &str,
-        _type: &str,
-        _balance: i64,
-    ) -> ApiResult<JsonValue> {
-        todo!("POST /budgets/{_budget_id}/accounts")
-    }
-
-    /// TODO
-    #[allow(dead_code)]
-    pub fn get_account(&mut self, _budget_id: &str, _account_id: &str) -> ApiResult<JsonValue> {
-        todo!("GET /budgets/{_budget_id}/accounts/{_account_id}")
-    }
-
-    #[allow(dead_code)]
-    pub fn list_categories(&mut self, budget_id: &str) -> ApiResult<JsonValue> {
-        let endp = &format!("/budgets/{budget_id}/categories");
-        self.get(endp)
-    }
-
-    #[allow(dead_code)]
-    pub fn get_category_transactions(
+    pub fn list_account_transactions(
         &mut self,
         budget_id: &str,
-        category_id: &str,
-    ) -> ApiResult<JsonValue> {
-        let endp = &format!("/budgets/{budget_id}/categories/{category_id}/transactions");
-        self.get(endp)
+        account_id: &str,
+    ) -> ApiResult<Vec<Transaction>> {
+        let endp = &format!("/budgets/{budget_id}/accounts/{account_id}/transactions");
+        let response = self.get(endp)?;
+
+        let mut ts = response["data"]["transactions"]
+            .as_array()
+            .unwrap()
+            .into_iter()
+            .map(|json| transaction_from_json(json))
+            .collect::<Vec<_>>();
+
+        ts.sort_by(|a, b| b.date.cmp(&a.date));
+        Ok(ts)
     }
 
-    //TODO: Implement since_date, and trans_type
-    pub fn get_budget_transactions(
+    pub fn list_transactions(
         &mut self,
         budget_id: &str,
-        _since_date: Option<DateTime<Local>>,
-        _trans_type: Option<String>,
         last_knowledge: Option<usize>,
-    ) -> ApiResult<JsonValue> {
+    ) -> ApiResult<Vec<Transaction>> {
         let endp = &if let Some(lk) = last_knowledge {
             format!("/budgets/{budget_id}/transactions?last_knowledge_of_server={lk}")
         } else {
             format!("/budgets/{budget_id}/transactions")
         };
 
-        self.get(endp)
+        let response = self.get(endp)?;
+        let mut ts = response["data"]["transactions"]
+            .as_array()
+            .unwrap()
+            .into_iter()
+            .map(|json| transaction_from_json(json))
+            .collect::<Vec<_>>();
+        ts.sort_by(|a, b| b.date.cmp(&a.date));
+        Ok(ts)
+    }
+}
+
+fn transaction_from_json(json: &JsonValue) -> Transaction {
+    Transaction {
+        id: json["id"].as_str().unwrap().to_string(),
+        date: json["date"].as_str().unwrap().to_string(),
+        amount: json["amount"].as_i64().unwrap(),
+        memo: json["memo"].as_str().map(str::to_string),
+        account_id: json["account_id"].as_str().unwrap().to_string(),
+        account_name: json["account_name"].as_str().unwrap().to_string(),
+        payee_id: json["payee_id"].as_str().map(str::to_string),
+        category_id: json["category_id"].as_str().map(str::to_string),
+        payee_name: json["payee_name"].as_str().map(str::to_string),
+        category_name: json["category_name"].as_str().unwrap().to_string(),
     }
 }
 

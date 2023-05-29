@@ -1,175 +1,49 @@
 use super::*;
 use crossterm::event::*;
 
-use crate::{components::*, data_layer::*, util::*};
+use crate::{components::*, data_layer::*};
 use std::{io, time::Duration};
-use tui::{layout::*, style::*, widgets::*};
+use tui::layout::*;
 
 pub struct Homepage {
     budgets: StatefulList<Budget>,
-    transactions: StatefulTable<Transaction>,
-    search: String,
     page_state: PageState,
 }
 
-impl TableWidget for Vec<Transaction> {
-    fn to_table(&self) -> Table {
-        let selected_style = Style::default().add_modifier(Modifier::REVERSED);
-        let table: Vec<Row> = self
-            .iter()
-            .map(|transaction| {
-                Row::new(vec![
-                    Cell::from(transaction.date.clone()),
-                    Cell::from(transaction.payee_name.clone().unwrap_or_default()),
-                    Cell::from(format!("${:.2}", milicent_to_dollars(transaction.amount))),
-                    Cell::from(transaction.memo.clone().unwrap_or_default()),
-                ])
-            })
-            .collect();
-
-        Table::new(table)
-            .header(Row::new(vec!["Date", "Payee_Name", "Amount", "Memo"]))
-            .block(block().title("Transactions"))
-            .highlight_style(selected_style)
-            .widths(&[
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
-            ])
-    }
-}
-
 impl Homepage {
-    pub fn new(data_gate: &DataGateway) -> Self {
+    pub fn new(api: &mut YnabApi) -> Self {
+        let mut budgets = StatefulList::with_items(api.list_budgets().unwrap());
+        budgets.select_next();
         Self {
-            budgets: StatefulList::with_items(data_gate.get_budgets()),
-            transactions: StatefulTable::new(),
+            budgets,
             page_state: PageState::BudgetSelect,
-            search: String::new(),
         }
     }
 
-    fn current_budget(&self) -> Option<&Budget> {
-        self.budgets
-            .state
-            .selected()
-            .map(|i| &self.budgets.items[i])
-    }
-
-    fn edit_search(&mut self, event: Event, dg: &mut DataGateway) -> io::Result<Message> {
-        if let Event::Key(key) = event {
-            if let PageState::EditSearch = self.page_state {
-                match key.code {
-                    KeyCode::Char(c) => {
-                        self.search.push(c);
-                    }
-                    KeyCode::Backspace => {
-                        self.search.pop();
-                    }
-                    KeyCode::Enter => {
-                        self.page_state = PageState::BudgetSelect;
-                        if let Some(b) = self.current_budget() {
-                            match dg.get_transactions_where(&b.id, &self.search) {
-                                Ok(ts) => {
-                                    self.transactions.items = ts;
-                                    self.transactions.unselect();
-                                }
-                                Err(e) => {
-                                    self.page_state =
-                                        PageState::ErrState(e.message.unwrap_or_default());
-                                }
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-                return noop();
-            }
-        }
-        noop()
-    }
-
-    fn select_budget(&mut self, event: Event, dg: &mut DataGateway) -> io::Result<Message> {
-        let key = if let Event::Key(key) = event {
-            key
-        } else {
-            return noop();
-        };
+    fn select_budget(&mut self, event: Event, api: &mut YnabApi) -> io::Result<Message> {
+        #[rustfmt::skip]
+        let key = if let Event::Key(key) = event { key } else { return noop(); };
 
         match key.code {
-            KeyCode::Char('b') => Ok(Message::Back),
             KeyCode::Char('r') => {
-                if let Err(e) = dg.refresh_db() {
-                    self.page_state = PageState::ErrState(e.message.unwrap_or_default());
-                    return noop();
-                };
-                self.budgets = StatefulList::with_items(dg.get_budgets());
-                self.transactions.items.clear();
-                self.transactions.unselect();
+                self.budgets = StatefulList::with_items(api.list_budgets().unwrap());
                 noop()
             }
             KeyCode::Char('k') => {
-                if let Some(b) = self.budgets.select_prev() {
-                    self.transactions.items = dg.get_transactions(&b.id);
-                    self.transactions.unselect()
-                }
+                self.budgets.select_prev();
                 noop()
             }
             KeyCode::Char('j') => {
-                if let Some(b) = self.budgets.select_next() {
-                    self.transactions.items = dg.get_transactions(&b.id);
-                    self.transactions.unselect()
-                }
-                noop()
-            }
-            KeyCode::Char('/') => {
-                self.page_state = PageState::EditSearch;
-                noop()
-            }
-            KeyCode::Char('l') => {
-                self.page_state = PageState::NavigateTable;
-                noop()
-            }
-            KeyCode::Esc => {
-                self.budgets.unselect();
-                self.transactions.items.clear();
-                self.transactions.unselect();
+                self.budgets.select_next();
                 noop()
             }
             KeyCode::Enter => {
-                if let Some(selected_index) = self.budgets.state.selected() {
-                    let budget = self.budgets.items[selected_index].clone();
-                    return Ok(Message::NewPage(Box::new(BudgetPage::new(budget))));
+                if let Some(budget) = self.budgets.get_current() {
+                    return Ok(Message::NewPage(Box::new(BudgetPage::new(
+                        budget.clone(),
+                        api,
+                    ))));
                 };
-                noop()
-            }
-            _ => noop(),
-        }
-    }
-
-    fn navigate_table(&mut self, event: Event) -> io::Result<Message> {
-        let key = if let Event::Key(key) = event {
-            key
-        } else {
-            return noop();
-        };
-
-        match key.code {
-            KeyCode::Char('j') => {
-                self.transactions.select_next();
-                noop()
-            }
-            KeyCode::Char('k') => {
-                self.transactions.select_prev();
-                noop()
-            }
-            KeyCode::Char('h') => {
-                self.page_state = PageState::BudgetSelect;
-                noop()
-            }
-            KeyCode::Char('/') => {
-                self.page_state = PageState::EditSearch;
                 noop()
             }
             _ => noop(),
@@ -180,15 +54,10 @@ impl Homepage {
 #[derive(PartialEq)]
 enum PageState {
     BudgetSelect,
-    EditSearch,
-    NavigateTable,
-    OverlayHelp,
-    ErrState(String),
 }
 
 impl Page for Homepage {
     fn ui(&mut self, frame: &mut Frame<CrosstermBackend<io::Stdout>>, area: Rect) {
-        frame.render_widget(Clear, area);
         let budget_items = self
             .budgets
             .items
@@ -197,68 +66,13 @@ impl Page for Homepage {
             .collect::<Vec<_>>();
         let mut budget_list = list(budget_items, "Budgets");
         if self.page_state == PageState::BudgetSelect {
-            budget_list = budget_list.block(selected_block().title("Budgets"))
+            budget_list = budget_list.block(selected_block().title("Select a Budget"))
         }
 
-        let mut search_bar = Paragraph::new(self.search.clone())
-            .style(Style::default().add_modifier(Modifier::RAPID_BLINK))
-            .block(block().title("SQL Filter"))
-            .wrap(Wrap { trim: false });
-        if self.page_state == PageState::EditSearch {
-            search_bar = search_bar.block(selected_block().title("SQL Filter"));
-        }
-
-        let mut transactions_table = self.transactions.items.to_table();
-        if self.page_state == PageState::NavigateTable {
-            transactions_table = transactions_table.block(selected_block().title("Transactions"))
-        }
-
-        let chunks = Layout::default()
-            .constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
-            .direction(Direction::Horizontal)
-            .split(area);
-        let left_area = chunks[0];
-        let right_area = chunks[1];
-
-        let chunks = Layout::default()
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .direction(Direction::Vertical)
-            .split(left_area);
-        let top_left = chunks[0];
-        let bottom_left = chunks[1];
-
-        if self.transactions.items.is_empty() {
-            frame.render_stateful_widget(budget_list, bottom_left, &mut self.budgets.state);
-            frame.render_widget(search_bar, top_left);
-            frame.render_stateful_widget(
-                transactions_table,
-                right_area,
-                &mut self.transactions.state,
-            );
-        } else {
-            frame.render_stateful_widget(budget_list, area, &mut self.budgets.state);
-        }
-
-        if let PageState::OverlayHelp = self.page_state {
-            let help_text = vec![
-                "?         Open Help",
-                "k         Move Up",
-                "j         Move Down",
-                "l         Move Right",
-                "h         Move Left",
-                "ctrl-c    Quit",
-                "/         Edit Filter Query",
-            ]
-            .join("\n");
-            render_popup_message(30, 70, area, Alignment::Left, &help_text, frame);
-        }
-
-        if let PageState::ErrState(message) = &self.page_state {
-            render_popup_message(30, 30, area, Alignment::Center, message, frame)
-        }
+        frame.render_stateful_widget(budget_list, area, &mut self.budgets.state);
     }
 
-    fn update(&mut self, dg: &mut DataGateway) -> io::Result<Message> {
+    fn update(&mut self, api: &mut YnabApi) -> io::Result<Message> {
         if let Ok(false) = poll(Duration::from_millis(200)) {
             return noop();
         }
@@ -269,27 +83,13 @@ impl Page for Homepage {
             if key.modifiers.contains(KeyModifiers::CONTROL) {
                 match key.code {
                     KeyCode::Char('c') => return Ok(Message::Quit),
-                    KeyCode::Char('h') => {
-                        self.page_state = PageState::OverlayHelp;
-                        return noop();
-                    }
                     _ => (),
                 }
             }
         }
 
         match self.page_state {
-            PageState::ErrState(_) => {
-                self.page_state = PageState::BudgetSelect;
-                noop()
-            }
-            PageState::OverlayHelp => {
-                self.page_state = PageState::BudgetSelect;
-                noop()
-            }
-            PageState::EditSearch => self.edit_search(event, dg),
-            PageState::BudgetSelect => self.select_budget(event, dg),
-            PageState::NavigateTable => self.navigate_table(event),
+            PageState::BudgetSelect => self.select_budget(event, api),
         }
     }
 
