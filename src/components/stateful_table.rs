@@ -1,14 +1,16 @@
-use tui::{widgets::*, style::*, layout::Constraint};
+use tui::{widgets::*, style::*, layout::{Constraint, Rect}, backend::Backend, Frame};
 
 use crate::{data_layer::models::Transaction, util::{milicent_to_dollars, force_mut_ref}};
 
-use super::{block, selected_block};
+use super::{block, active_block};
 
 #[derive(Clone)]
 pub struct StatefulTable<T> {
     state: TableState,
     items: Vec<T>,
     filtered: Vec<T>,
+    title: String,
+    active: bool,
 }
 
 #[rustfmt::skip]
@@ -20,14 +22,31 @@ impl<T> StatefulTable<T> {
             state: TableState::default(),
             items: Vec::new(),
             filtered: Vec::new(),
+            title: String::new(),
+            active: false,
         }
     }
-    pub fn with_items(items: Vec<T>) -> Self {
-        Self {
-            state: TableState::default(),
-            items,
-            filtered: Vec::new(),
-        }
+
+    pub fn set_items(&mut self, transactions: Vec<T>) -> &mut Self {
+        self.filtered.clear();
+        self.items = transactions;
+        self.unselect();
+        self
+    }
+
+    pub fn set_title(&mut self, title: &str) -> &mut Self {
+        self.title = title.to_string();
+        self
+    }
+
+    pub fn focus(&mut self) -> &mut Self {
+        self.active = true;
+        self
+    }
+
+    pub fn unfocus(&mut self) -> &mut Self {
+        self.active = false;
+        self
     }
 
     pub fn select_next(&mut self) -> usize {
@@ -64,43 +83,24 @@ impl<T> StatefulTable<T> {
         self.state.select(None);
     }
 
-    pub fn get_state_mut(&self) -> &mut TableState {
-        unsafe {
-            force_mut_ref(&self.state)
-        }
-    }
-
-    pub fn set_items(&mut self, transactions: Vec<T>) {
-        self.filtered.clear();
-        self.items = transactions;
-        self.unselect();
-    }
-
-}
-
-impl StatefulTable<Transaction> {
-    pub fn ui<'a, 'b:'a>(&'a self, title: &'b str, selected: bool) -> Table {
+    fn ui<'a, F>(&'a self, to_cells: F) -> Table 
+        where F: Fn(&T) -> Vec<Cell<'a>>
+    {
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
         let table: Vec<Row> = self.items
             .iter()
-            .map(|transaction| {
-                Row::new(vec![
-                    Cell::from(transaction.payee_name.as_deref().unwrap_or_default()),
-                    Cell::from(transaction.category_name.as_str()),
-                    Cell::from(transaction.memo.as_deref().unwrap_or_default()),
-                    Cell::from(format!("${:.2}", milicent_to_dollars(transaction.amount))),
-                    Cell::from(transaction.date.as_str()),
-                ])
+            .map(|items| {
+                Row::new(to_cells(items))
             })
             .collect();
 
-        let block = if selected {
-            selected_block().title(title)
+        let block = if self.active {
+            active_block().title(self.title.as_str())
         } else {
-            block().title(title)
+            block().title(self.title.as_str())
         };
 
-        Table::new(table)
+        let table = Table::new(table)
             .header(Row::new(vec!["Payee", "Category", "Memo", "Amount", "Date"]))
             .block(block)
             .highlight_style(selected_style)
@@ -110,16 +110,30 @@ impl StatefulTable<Transaction> {
                 Constraint::Percentage(36),
                 Constraint::Percentage(10),
                 Constraint::Percentage(10),
-            ])
+            ]);
+        table
+    }
+
+}
+
+impl StatefulTable<Transaction> {
+    pub fn render<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
+        let table = self.ui(|transaction| {
+            vec![
+                Cell::from(transaction.payee_id.clone().unwrap_or_default()),
+                Cell::from(transaction.category_name.clone()),
+                Cell::from(transaction.memo.clone().unwrap_or_default()),
+                Cell::from(format!("${:.2}", milicent_to_dollars(transaction.amount))),
+                Cell::from(transaction.date.clone()),
+            ]
+        });
+
+        f.render_stateful_widget(table, area, unsafe {force_mut_ref(&self.state)})
     }
 
     pub fn filter(&mut self, filter: &str) {
-        //eprintln!("Filtering");
-        //eprintln!("Len of items: {}, Len of filtered: {}", self.items.len(), self.filtered.len());
-
         self.items.extend(self.filtered.drain(..));
 
-        //eprintln!("Len of items: {}, Len of filtered: {}", self.items.len(), self.filtered.len());
         let filtered = self.items.drain_filter(|t| {
             !format!("{}{}{}{}{}{}", 
                 t.date, 
@@ -131,9 +145,6 @@ impl StatefulTable<Transaction> {
             ).to_lowercase().contains(filter)
         });
         self.filtered.extend(filtered);
-
-        //eprintln!("Len of items: {}, Len of filtered: {}", self.items.len(), self.filtered.len());
-
         self.unselect();
     }
 }

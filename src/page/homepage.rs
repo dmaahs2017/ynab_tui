@@ -7,16 +7,18 @@ use tui::layout::*;
 
 pub struct Homepage {
     budgets: StatefulList<Budget>,
-    page_state: PageState,
 }
 
 impl Homepage {
     pub fn new(api: &mut YnabApi) -> Self {
-        let mut budgets = StatefulList::with_items(api.list_budgets().unwrap());
-        budgets.select_next();
+        let mut budgets = StatefulList::new();
+        budgets.set_items(api.list_budgets().unwrap())
+            .set_title("Budgets")
+            .focus()
+            .select_next();
+
         Self {
             budgets,
-            page_state: PageState::BudgetSelect,
         }
     }
 
@@ -26,7 +28,7 @@ impl Homepage {
 
         match key.code {
             KeyCode::Char('r') => {
-                self.budgets = StatefulList::with_items(api.list_budgets().unwrap());
+                self.budgets.set_items(api.list_budgets().unwrap());
                 noop()
             }
             KeyCode::Char('k') => {
@@ -58,8 +60,7 @@ enum PageState {
 
 impl Page for Homepage {
     fn ui(&mut self, frame: &mut Frame<CrosstermBackend<io::Stdout>>, area: Rect) {
-        let budget_list = self.budgets.ui("Budgets", self.page_state == PageState::BudgetSelect);
-        frame.render_stateful_widget(budget_list, area, self.budgets.get_state_mut());
+        self.budgets.render(frame, area);
     }
 
     fn update(&mut self, api: &mut YnabApi) -> io::Result<Message> {
@@ -78,9 +79,7 @@ impl Page for Homepage {
             }
         }
 
-        match self.page_state {
-            PageState::BudgetSelect => self.select_budget(event, api),
-        }
+        self.select_budget(event, api)
     }
 
     fn name(&self) -> String {

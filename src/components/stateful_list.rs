@@ -1,13 +1,15 @@
-use tui::widgets::*;
+use tui::{widgets::*, backend::Backend, terminal::Frame, layout::Rect, style::*};
 
 use crate::{data_layer::models::*, util::force_mut_ref};
 
 use super::helpers::*;
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct StatefulList<T> {
     state: ListState,
     items: Vec<T>,
+    active: bool,
+    title: String,
 }
 
 impl<T> std::ops::Index<usize> for StatefulList<T> {
@@ -18,22 +20,34 @@ impl<T> std::ops::Index<usize> for StatefulList<T> {
     }
 }
 
-impl<T> StatefulList<T> {
-    pub fn with_items(items: Vec<T>) -> StatefulList<T> {
-        StatefulList {
-            state: ListState::default(),
-            items,
+impl<T: Clone> StatefulList<T> {
+    pub fn new() -> Self {
+        Self {
+            state: Default::default(),
+            items: vec![],
+            active: false,
+            title: String::new(),
         }
     }
-
-    pub fn get_state(&self) -> &ListState {
-        &self.state
+    
+    pub fn set_items(&mut self, items: Vec<T>) -> &mut Self {
+        self.items = items;
+        self
     }
 
-    pub fn get_state_mut(&self) -> &mut ListState {
-        unsafe {
-            force_mut_ref(&self.state)
-        }
+    pub fn focus(&mut self) -> &mut Self {
+        self.active = true;
+        self
+    }
+
+    pub fn unfocus(&mut self) -> &mut Self {
+        self.active = false;
+        self
+    }
+
+    pub fn set_title(&mut self, title: &str) -> &mut Self {
+        self.title = title.to_string();
+        self
     }
 
     pub fn get_selected(&self) -> Option<&T> {
@@ -87,34 +101,44 @@ impl<T> StatefulList<T> {
         self.state.select(None);
     }
 
-}
 
-impl StatefulList<Budget> {
-    pub fn ui<'a, 'b:'a>(&'a self, title: &'b str, selected: bool) -> List {
+    fn ui<'a, F>(&'a self, line_to_str: F) -> List 
+        where F: Fn(T) -> String
+    {
+        let block = if self.active {
+            active_block().title(self.title.as_str())
+        } else {
+            block().title(self.title.as_str())
+        };
+
         let budget_items = self
             .items
             .iter()
-            .map(|budget| list_item(&budget.name))
+            .map(|item| list_item(line_to_str(item.clone())))
             .collect::<Vec<_>>();
-        let mut budget_list = list(budget_items, title);
-        if selected {
-            budget_list = budget_list.block(selected_block().title(title))
-        }
+
+        let budget_list = List::new(budget_items)
+            .block(block)
+            .highlight_style(
+                Style::default()
+                    .bg(Color::LightGreen)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .highlight_symbol(">> ");
         budget_list
+    }
+
+}
+
+impl StatefulList<Budget> {
+    pub fn render<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
+        f.render_stateful_widget(self.ui(|b| b.name), area, unsafe { force_mut_ref(&self.state) })
     }
 }
 
 impl StatefulList<Account> {
-    pub fn ui<'a, 'b: 'a>(&'a self, title: &'b str, selected: bool) -> List<'a> {
-        let account_list_items = self
-            .items
-            .iter()
-            .map(|account| list_item(&account.name))
-            .collect::<Vec<_>>();
-        let mut account_list = list(account_list_items, title);
-        if selected {
-            account_list = account_list.block(selected_block().title(title))
-        }
-        account_list
+    pub fn render<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
+        let widget = self.ui(|a| a.name).to_owned();
+        f.render_stateful_widget(widget, area, unsafe { force_mut_ref(&self.state) })
     }
 }

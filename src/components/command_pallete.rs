@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use tui::{ widgets::*, style::* };
 
-use super::{selected_block, block};
+use super::{active_block, block};
 
 #[derive(Default, Clone)]
 pub struct CommandPallete {
@@ -29,7 +29,7 @@ impl CommandPallete {
 
     pub fn ui<'a, 'b: 'a>(&'a self, title: &'b str, selected: bool) -> Paragraph {
         let block = if selected {
-            selected_block().title(title)
+            active_block().title(title)
         } else {
             block().title(title)
         };
