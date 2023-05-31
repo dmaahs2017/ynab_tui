@@ -134,12 +134,7 @@ impl StatefulTable<TransactionDetail> {
                         .map(|id| id.to_string())
                         .unwrap_or_default(),
                 ),
-                Cell::from(
-                    transaction
-                        .category_name
-                        .clone()
-                        .unwrap_or_default(),
-                ),
+                Cell::from(transaction.category_name.clone().unwrap_or_default()),
                 Cell::from(transaction.memo.clone().unwrap_or_default()),
                 Cell::from(format!("${:.2}", milicent_to_dollars(transaction.amount))),
                 Cell::from(transaction.date.clone()),

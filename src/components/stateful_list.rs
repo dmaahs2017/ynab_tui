@@ -107,7 +107,6 @@ impl<T> StatefulList<T> {
     pub fn unselect(&mut self) {
         self.state.select(None);
     }
-
 }
 impl<T: Clone> StatefulList<T> {
     fn ui<F>(&self, line_to_str: F) -> List
