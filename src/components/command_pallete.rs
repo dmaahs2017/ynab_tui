@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use tui::{ widgets::*, style::* };
+use tui::{style::*, widgets::*};
 
 use super::{active_block, block};
 

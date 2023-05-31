@@ -68,5 +68,5 @@ pub fn master_stack_layout(children: u16, master_width: u16, area: Rect) -> (Rec
 }
 
 pub unsafe fn force_mut_ref<T>(a: &T) -> &mut T {
-    &mut *( ( a as *const T ) as *mut T )
+    &mut *((a as *const T) as *mut T)
 }

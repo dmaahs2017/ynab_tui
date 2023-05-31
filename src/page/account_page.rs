@@ -14,17 +14,21 @@ pub struct AccountsPage {
     page_state: PageState,
 }
 
-
 impl AccountsPage {
     pub fn new(budget: Budget, api: &mut YnabApi) -> Self {
-        let account_list = api.list_accounts(&budget.id).unwrap();
-        let transactions_list = api.list_transactions(&budget.id, None).unwrap();
+        let account_list = api.get_accounts(&budget.id).unwrap();
+        let transactions_list = api.list_transactions(&budget.id).unwrap();
 
         let mut accounts = StatefulList::new();
-        accounts.set_items(account_list).set_title("Accounts").focus();
+        accounts
+            .set_items(account_list)
+            .set_title("Accounts")
+            .focus();
 
         let mut transactions = StatefulTable::new();
-        transactions.set_items(transactions_list).set_title("Transactions");
+        transactions
+            .set_items(transactions_list)
+            .set_title("Transactions");
 
         Self {
             budget,
@@ -35,25 +39,24 @@ impl AccountsPage {
         }
     }
 
-
     fn edit_command(&mut self, event: Event, prev_state: PageState) -> io::Result<Message> {
         if let Event::Key(key) = event {
-                match key.code {
-                    KeyCode::Char(c) => {
-                        self.command_pallete.push(c);
-                    }
-                    KeyCode::Backspace => {
-                        self.command_pallete.pop();
-                    }
-                    KeyCode::Enter => {
-                        if prev_state == PageState::NavigateTable {
-                            self.transactions.filter(&self.command_pallete)
-                        }
-                        self.page_state = prev_state
-                    }
-                    _ => {}
+            match key.code {
+                KeyCode::Char(c) => {
+                    self.command_pallete.push(c);
                 }
-                return noop();
+                KeyCode::Backspace => {
+                    self.command_pallete.pop();
+                }
+                KeyCode::Enter => {
+                    if prev_state == PageState::NavigateTable {
+                        self.transactions.filter(&self.command_pallete)
+                    }
+                    self.page_state = prev_state
+                }
+                _ => {}
+            }
+            return noop();
         }
         noop()
     }
@@ -68,19 +71,26 @@ impl AccountsPage {
         match key.code {
             KeyCode::Char('b') => Ok(Message::Back),
             KeyCode::Char('r') => {
-                self.accounts.set_items(api.list_accounts(&self.budget.id).unwrap());
+                self.accounts
+                    .set_items(api.get_accounts(&self.budget.id).unwrap());
                 noop()
             }
             KeyCode::Char('k') => {
                 if let Some(account) = self.accounts.select_prev() {
-                    self.transactions.set_items(api.list_account_transactions(&self.budget.id, &account.id).unwrap());
+                    self.transactions.set_items(
+                        api.get_transactions_by_account(&self.budget.id, &account.id)
+                            .unwrap(),
+                    );
                     self.transactions.filter(&self.command_pallete);
                 }
                 noop()
             }
             KeyCode::Char('j') => {
                 if let Some(account) = self.accounts.select_next() {
-                    self.transactions.set_items(api.list_account_transactions(&self.budget.id, &account.id).unwrap());
+                    self.transactions.set_items(
+                        api.get_transactions_by_account(&self.budget.id, &account.id)
+                            .unwrap(),
+                    );
                     self.transactions.filter(&self.command_pallete);
                 }
                 noop()
@@ -97,12 +107,11 @@ impl AccountsPage {
             }
             KeyCode::Esc => {
                 self.accounts.unselect();
-                self.transactions.set_items(api.list_transactions(&self.budget.id, None).unwrap());
+                self.transactions
+                    .set_items(api.list_transactions(&self.budget.id).unwrap());
                 noop()
             }
-            KeyCode::Enter => {
-                noop()
-            }
+            KeyCode::Enter => noop(),
             _ => noop(),
         }
     }
@@ -156,7 +165,7 @@ enum PageState {
 impl PageState {
     fn is_edit(&self) -> bool {
         if let PageState::EditCommand(_) = self {
-            return true
+            return true;
         }
         false
     }
@@ -166,12 +175,11 @@ impl Page for AccountsPage {
     fn ui(&mut self, frame: &mut Frame<CrosstermBackend<io::Stdout>>, area: Rect) {
         let command_pallete = self.command_pallete.ui("Search", self.page_state.is_edit());
 
-
         if self.command_pallete.is_empty() && !self.page_state.is_edit() {
             let (master, stack) = master_stack_layout(1, 80, area);
 
             self.transactions.render(frame, master);
-            self.accounts.render(frame , stack[0]);
+            self.accounts.render(frame, stack[0]);
         } else {
             let (area, pallete_area) = split_vertical(90, area);
             let (master, stack) = master_stack_layout(1, 80, area);
@@ -229,18 +237,17 @@ impl Page for AccountsPage {
                 self.page_state = PageState::AccountSelect;
                 noop()
             }
-            PageState::EditCommand(prev_state) => {
-                self.edit_command(event, *prev_state)
-            },
-            PageState::AccountSelect => {
-                self.select_account(event, api)
-            },
+            PageState::EditCommand(prev_state) => self.edit_command(event, *prev_state),
+            PageState::AccountSelect => self.select_account(event, api),
             PageState::NavigateTable => self.navigate_table(event),
         }
     }
 
     fn name(&self) -> String {
-        self.accounts.get_selected().map(|a| a.name.clone()).unwrap_or("All Accounts".to_string())
+        self.accounts
+            .get_selected()
+            .map(|a| a.name.clone())
+            .unwrap_or("All Accounts".to_string())
     }
 }
 

@@ -1,8 +1,17 @@
-use tui::{widgets::*, style::*, layout::{Constraint, Rect}, backend::Backend, Frame};
+use tui::{
+    backend::Backend,
+    layout::{Constraint, Rect},
+    style::*,
+    widgets::*,
+    Frame,
+};
 
-use crate::{data_layer::models::Transaction, util::{milicent_to_dollars, force_mut_ref}};
+use crate::{
+    data_layer::models::Transaction,
+    util::{force_mut_ref, milicent_to_dollars},
+};
 
-use super::{block, active_block};
+use super::{active_block, block};
 
 #[derive(Clone)]
 pub struct StatefulTable<T> {
@@ -83,15 +92,15 @@ impl<T> StatefulTable<T> {
         self.state.select(None);
     }
 
-    fn ui<'a, F>(&'a self, to_cells: F) -> Table 
-        where F: Fn(&T) -> Vec<Cell<'a>>
+    fn ui<'a, F>(&'a self, to_cells: F) -> Table
+    where
+        F: Fn(&T) -> Vec<Cell<'a>>,
     {
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
-        let table: Vec<Row> = self.items
+        let table: Vec<Row> = self
+            .items
             .iter()
-            .map(|items| {
-                Row::new(to_cells(items))
-            })
+            .map(|items| Row::new(to_cells(items)))
             .collect();
 
         let block = if self.active {
@@ -101,7 +110,9 @@ impl<T> StatefulTable<T> {
         };
 
         let table = Table::new(table)
-            .header(Row::new(vec!["Payee", "Category", "Memo", "Amount", "Date"]))
+            .header(Row::new(vec![
+                "Payee", "Category", "Memo", "Amount", "Date",
+            ]))
             .block(block)
             .highlight_style(selected_style)
             .widths(&[
@@ -113,7 +124,6 @@ impl<T> StatefulTable<T> {
             ]);
         table
     }
-
 }
 
 impl StatefulTable<Transaction> {
@@ -128,21 +138,24 @@ impl StatefulTable<Transaction> {
             ]
         });
 
-        f.render_stateful_widget(table, area, unsafe {force_mut_ref(&self.state)})
+        f.render_stateful_widget(table, area, unsafe { force_mut_ref(&self.state) })
     }
 
     pub fn filter(&mut self, filter: &str) {
         self.items.extend(self.filtered.drain(..));
 
         let filtered = self.items.drain_filter(|t| {
-            !format!("{}{}{}{}{}{}", 
-                t.date, 
+            !format!(
+                "{}{}{}{}{}{}",
+                t.date,
                 t.amount,
                 t.memo.clone().unwrap_or_default(),
                 t.payee_name.clone().unwrap_or_default(),
                 t.category_name,
                 t.account_name
-            ).to_lowercase().contains(filter)
+            )
+            .to_lowercase()
+            .contains(filter)
         });
         self.filtered.extend(filtered);
         self.unselect();
