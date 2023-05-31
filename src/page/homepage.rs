@@ -1,12 +1,13 @@
 use super::*;
 use crossterm::event::*;
+use ynab_openapi::models::BudgetSummary;
 
 use crate::{components::*, data_layer::*};
 use std::{io, time::Duration};
 use tui::layout::*;
 
 pub struct Homepage {
-    budgets: StatefulList<Budget>,
+    budgets: StatefulList<BudgetSummary>,
 }
 
 impl Homepage {

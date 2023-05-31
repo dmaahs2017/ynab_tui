@@ -11,10 +11,8 @@ use ynab_openapi::{
         configuration::{ApiKey, Configuration},
         transactions_api,
     },
-    models::TransactionDetail,
+    models::{Account, BudgetSummary, TransactionDetail},
 };
-
-use super::models::{Account, Budget, Transaction};
 
 type ApiResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -57,13 +55,13 @@ impl YnabApi {
         T: Serialize + Deserialize<'a>,
     {
         let cache_entry: &mut CacheEntry = match self.cache.entry(endpoint) {
-            Entry::Occupied(v) => v.into_mut(),
-            Entry::Vacant(e) => {
+            Entry::Occupied(o) => o.into_mut(),
+            Entry::Vacant(v) => {
                 let ce = CacheEntry {
                     datetime: Local::now(),
                     response_json: serde_json::to_string(&api_call(&self.config)?)?,
                 };
-                e.insert(ce)
+                v.insert(ce)
             }
         };
 
@@ -79,23 +77,11 @@ impl YnabApi {
         Ok(resp)
     }
 
-    pub fn get_budgets(&mut self) -> ApiResult<Vec<Budget>> {
+    pub fn get_budgets(&mut self) -> ApiResult<Vec<BudgetSummary>> {
         let endp = "/budgets".to_string();
         let response = self.get(endp, |config| Ok(budgets_api::get_budgets(config, None)?))?;
 
-        Ok(response
-            .data
-            .budgets
-            .into_iter()
-            .into_iter()
-            .map(|bj| Budget {
-                id: bj.id.to_string(),
-                name: bj.name,
-                first_month: bj.first_month.unwrap(),
-                last_month: bj.last_month.unwrap(),
-                date_format: bj.date_format.unwrap().format,
-            })
-            .collect())
+        Ok(response.data.budgets)
     }
 
     pub fn get_accounts(&mut self, budget_id: &str) -> ApiResult<Vec<Account>> {
@@ -104,22 +90,14 @@ impl YnabApi {
             Ok(accounts_api::get_accounts(config, budget_id, None)?)
         })?;
 
-        Ok(response
-            .data
-            .accounts
-            .into_iter()
-            .map(|bj| Account {
-                id: bj.id.to_string(),
-                name: bj.name,
-            })
-            .collect())
+        Ok(response.data.accounts)
     }
 
     pub fn get_transactions_by_account(
         &mut self,
         budget_id: &str,
         account_id: &str,
-    ) -> ApiResult<Vec<Transaction>> {
+    ) -> ApiResult<Vec<TransactionDetail>> {
         let endp = format!("/budgets/{budget_id}/accounts/{account_id}/transactions");
         let response = self.get(endp, |config| {
             Ok(transactions_api::get_transactions_by_account(
@@ -127,18 +105,13 @@ impl YnabApi {
             )?)
         })?;
 
-        let mut ts = response
-            .data
-            .transactions
-            .into_iter()
-            .map(|transaction| transaction_from_json(transaction))
-            .collect::<Vec<_>>();
+        let mut ts = response.data.transactions;
 
         ts.sort_by(|a, b| b.date.cmp(&a.date));
         Ok(ts)
     }
 
-    pub fn list_transactions(&mut self, budget_id: &str) -> ApiResult<Vec<Transaction>> {
+    pub fn get_transactions(&mut self, budget_id: &str) -> ApiResult<Vec<TransactionDetail>> {
         let endp = format!("/budgets/{budget_id}/transactions");
 
         let response = self.get(endp, |config| {
@@ -146,29 +119,9 @@ impl YnabApi {
                 config, budget_id, None, None, None,
             )?)
         })?;
-        let mut ts = response
-            .data
-            .transactions
-            .into_iter()
-            .map(|json| transaction_from_json(json))
-            .collect::<Vec<_>>();
+        let mut ts = response.data.transactions;
         ts.sort_by(|a, b| b.date.cmp(&a.date));
         Ok(ts)
-    }
-}
-
-fn transaction_from_json(transaction: TransactionDetail) -> Transaction {
-    Transaction {
-        id: transaction.id,
-        date: transaction.date,
-        amount: transaction.amount,
-        memo: transaction.memo,
-        account_id: transaction.account_id.to_string(),
-        account_name: transaction.account_name,
-        payee_id: transaction.payee_id.map(|a| a.to_string()),
-        category_id: transaction.category_id.map(|a| a.to_string()),
-        payee_name: transaction.payee_name,
-        category_name: transaction.category_name.unwrap(),
     }
 }
 

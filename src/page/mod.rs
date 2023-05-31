@@ -3,7 +3,7 @@ mod homepage;
 pub use account_page::*;
 pub use homepage::*;
 
-use crate::data_layer::{models::*, YnabApi};
+use crate::data_layer::YnabApi;
 use std::io;
 use tui::{backend::CrosstermBackend, layout::Rect, Frame};
 

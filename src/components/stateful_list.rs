@@ -1,6 +1,7 @@
 use tui::{backend::Backend, layout::Rect, style::*, terminal::Frame, widgets::*};
+use ynab_openapi::models::{Account, BudgetSummary};
 
-use crate::{data_layer::models::*, util::force_mut_ref};
+use crate::util::force_mut_ref;
 
 use super::helpers::*;
 
@@ -129,7 +130,7 @@ impl<T: Clone> StatefulList<T> {
     }
 }
 
-impl StatefulList<Budget> {
+impl StatefulList<BudgetSummary> {
     pub fn render<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
         f.render_stateful_widget(self.ui(|b| b.name), area, unsafe {
             force_mut_ref(&self.state)

@@ -5,11 +5,9 @@ use tui::{
     widgets::*,
     Frame,
 };
+use ynab_openapi::models::TransactionDetail;
 
-use crate::{
-    data_layer::models::Transaction,
-    util::{force_mut_ref, milicent_to_dollars},
-};
+use crate::util::{force_mut_ref, milicent_to_dollars};
 
 use super::{active_block, block};
 
@@ -126,12 +124,23 @@ impl<T> StatefulTable<T> {
     }
 }
 
-impl StatefulTable<Transaction> {
+impl StatefulTable<TransactionDetail> {
     pub fn render<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
         let table = self.ui(|transaction| {
             vec![
-                Cell::from(transaction.payee_id.clone().unwrap_or_default()),
-                Cell::from(transaction.category_name.clone()),
+                Cell::from(
+                    transaction
+                        .payee_id
+                        .map(|id| id.to_string())
+                        .unwrap_or_default(),
+                ),
+                Cell::from(
+                    transaction
+                        .category_name
+                        .clone()
+                        .map(|n| n.to_string())
+                        .unwrap_or_default(),
+                ),
                 Cell::from(transaction.memo.clone().unwrap_or_default()),
                 Cell::from(format!("${:.2}", milicent_to_dollars(transaction.amount))),
                 Cell::from(transaction.date.clone()),
@@ -151,7 +160,7 @@ impl StatefulTable<Transaction> {
                 t.amount,
                 t.memo.clone().unwrap_or_default(),
                 t.payee_name.clone().unwrap_or_default(),
-                t.category_name,
+                t.category_name.clone().unwrap_or_default(),
                 t.account_name
             )
             .to_lowercase()

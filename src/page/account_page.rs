@@ -1,5 +1,6 @@
 use super::*;
 use crossterm::event::*;
+use ynab_openapi::models::{Account, BudgetSummary, TransactionDetail};
 
 use crate::{components::*, data_layer::*, util::*};
 use std::{io, time::Duration};
@@ -7,17 +8,17 @@ use tui::layout::*;
 
 #[derive(Clone)]
 pub struct AccountsPage {
-    budget: Budget,
+    budget: BudgetSummary,
     accounts: StatefulList<Account>,
-    transactions: StatefulTable<Transaction>,
+    transactions: StatefulTable<TransactionDetail>,
     command_pallete: CommandPallete,
     page_state: PageState,
 }
 
 impl AccountsPage {
-    pub fn new(budget: Budget, api: &mut YnabApi) -> Self {
-        let account_list = api.get_accounts(&budget.id).unwrap();
-        let transactions_list = api.list_transactions(&budget.id).unwrap();
+    pub fn new(budget: BudgetSummary, api: &mut YnabApi) -> Self {
+        let account_list = api.get_accounts(&budget.id.to_string()).unwrap();
+        let transactions_list = api.get_transactions(&budget.id.to_string()).unwrap();
 
         let mut accounts = StatefulList::new();
         accounts
@@ -72,14 +73,17 @@ impl AccountsPage {
             KeyCode::Char('b') => Ok(Message::Back),
             KeyCode::Char('r') => {
                 self.accounts
-                    .set_items(api.get_accounts(&self.budget.id).unwrap());
+                    .set_items(api.get_accounts(&self.budget.id.to_string()).unwrap());
                 noop()
             }
             KeyCode::Char('k') => {
                 if let Some(account) = self.accounts.select_prev() {
                     self.transactions.set_items(
-                        api.get_transactions_by_account(&self.budget.id, &account.id)
-                            .unwrap(),
+                        api.get_transactions_by_account(
+                            &self.budget.id.to_string(),
+                            &account.id.to_string(),
+                        )
+                        .unwrap(),
                     );
                     self.transactions.filter(&self.command_pallete);
                 }
@@ -88,8 +92,11 @@ impl AccountsPage {
             KeyCode::Char('j') => {
                 if let Some(account) = self.accounts.select_next() {
                     self.transactions.set_items(
-                        api.get_transactions_by_account(&self.budget.id, &account.id)
-                            .unwrap(),
+                        api.get_transactions_by_account(
+                            &self.budget.id.to_string(),
+                            &account.id.to_string(),
+                        )
+                        .unwrap(),
                     );
                     self.transactions.filter(&self.command_pallete);
                 }
@@ -108,7 +115,7 @@ impl AccountsPage {
             KeyCode::Esc => {
                 self.accounts.unselect();
                 self.transactions
-                    .set_items(api.list_transactions(&self.budget.id).unwrap());
+                    .set_items(api.get_transactions(&self.budget.id.to_string()).unwrap());
                 noop()
             }
             KeyCode::Enter => noop(),
