@@ -13,6 +13,12 @@ pub struct StatefulList<T> {
     title: String,
 }
 
+impl<T> Default for StatefulList<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> std::ops::Index<usize> for StatefulList<T> {
     type Output = T;
 
@@ -21,7 +27,7 @@ impl<T> std::ops::Index<usize> for StatefulList<T> {
     }
 }
 
-impl<T: Clone> StatefulList<T> {
+impl<T> StatefulList<T> {
     pub fn new() -> Self {
         Self {
             state: Default::default(),
@@ -102,7 +108,9 @@ impl<T: Clone> StatefulList<T> {
         self.state.select(None);
     }
 
-    fn ui<'a, F>(&'a self, line_to_str: F) -> List
+}
+impl<T: Clone> StatefulList<T> {
+    fn ui<F>(&self, line_to_str: F) -> List
     where
         F: Fn(T) -> String,
     {

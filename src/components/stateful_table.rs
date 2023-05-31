@@ -138,7 +138,6 @@ impl StatefulTable<TransactionDetail> {
                     transaction
                         .category_name
                         .clone()
-                        .map(|n| n.to_string())
                         .unwrap_or_default(),
                 ),
                 Cell::from(transaction.memo.clone().unwrap_or_default()),
@@ -151,7 +150,7 @@ impl StatefulTable<TransactionDetail> {
     }
 
     pub fn filter(&mut self, filter: &str) {
-        self.items.extend(self.filtered.drain(..));
+        self.items.append(&mut self.filtered);
 
         let filtered = self.items.drain_filter(|t| {
             !format!(
