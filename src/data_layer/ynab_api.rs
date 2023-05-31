@@ -1,7 +1,10 @@
 use chrono::{DateTime, Duration, Local};
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::{collections::{HashMap, hash_map::Entry}, fs, io};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    fs, io,
+};
 use ynab_openapi::{
     apis::{
         accounts_api, budgets_api,
@@ -54,16 +57,14 @@ impl YnabApi {
         T: Serialize + Deserialize<'a>,
     {
         let cache_entry: &mut CacheEntry = match self.cache.entry(endpoint) {
-            Entry::Occupied(v) => {
-                v.into_mut()
-            },
+            Entry::Occupied(v) => v.into_mut(),
             Entry::Vacant(e) => {
                 let ce = CacheEntry {
                     datetime: Local::now(),
                     response_json: serde_json::to_string(&api_call(&self.config)?)?,
                 };
                 e.insert(ce)
-            },
+            }
         };
 
         if Local::now() - cache_entry.datetime < self.refresh_duration && !self.force_refresh {
@@ -137,10 +138,7 @@ impl YnabApi {
         Ok(ts)
     }
 
-    pub fn list_transactions(
-        &mut self,
-        budget_id: &str,
-    ) -> ApiResult<Vec<Transaction>> {
+    pub fn list_transactions(&mut self, budget_id: &str) -> ApiResult<Vec<Transaction>> {
         let endp = format!("/budgets/{budget_id}/transactions");
 
         let response = self.get(endp, |config| {
