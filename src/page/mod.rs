@@ -5,12 +5,7 @@ pub use homepage::*;
 
 use crate::data_layer::{models::*, YnabApi};
 use std::io;
-use tui::{
-    backend::CrosstermBackend,
-    layout::Rect,
-    Frame,
-};
-
+use tui::{backend::CrosstermBackend, layout::Rect, Frame};
 
 pub enum Message {
     Back,

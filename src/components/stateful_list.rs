@@ -1,4 +1,4 @@
-use tui::{widgets::*, backend::Backend, terminal::Frame, layout::Rect, style::*};
+use tui::{backend::Backend, layout::Rect, style::*, terminal::Frame, widgets::*};
 
 use crate::{data_layer::models::*, util::force_mut_ref};
 
@@ -29,7 +29,7 @@ impl<T: Clone> StatefulList<T> {
             title: String::new(),
         }
     }
-    
+
     pub fn set_items(&mut self, items: Vec<T>) -> &mut Self {
         self.items = items;
         self
@@ -101,9 +101,9 @@ impl<T: Clone> StatefulList<T> {
         self.state.select(None);
     }
 
-
-    fn ui<'a, F>(&'a self, line_to_str: F) -> List 
-        where F: Fn(T) -> String
+    fn ui<'a, F>(&'a self, line_to_str: F) -> List
+    where
+        F: Fn(T) -> String,
     {
         let block = if self.active {
             active_block().title(self.title.as_str())
@@ -127,12 +127,13 @@ impl<T: Clone> StatefulList<T> {
             .highlight_symbol(">> ");
         budget_list
     }
-
 }
 
 impl StatefulList<Budget> {
     pub fn render<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
-        f.render_stateful_widget(self.ui(|b| b.name), area, unsafe { force_mut_ref(&self.state) })
+        f.render_stateful_widget(self.ui(|b| b.name), area, unsafe {
+            force_mut_ref(&self.state)
+        })
     }
 }
 

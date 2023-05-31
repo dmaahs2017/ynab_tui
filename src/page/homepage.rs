@@ -12,14 +12,13 @@ pub struct Homepage {
 impl Homepage {
     pub fn new(api: &mut YnabApi) -> Self {
         let mut budgets = StatefulList::new();
-        budgets.set_items(api.list_budgets().unwrap())
+        budgets
+            .set_items(api.get_budgets().unwrap())
             .set_title("Budgets")
             .focus()
             .select_next();
 
-        Self {
-            budgets,
-        }
+        Self { budgets }
     }
 
     fn select_budget(&mut self, event: Event, api: &mut YnabApi) -> io::Result<Message> {
@@ -28,7 +27,7 @@ impl Homepage {
 
         match key.code {
             KeyCode::Char('r') => {
-                self.budgets.set_items(api.list_budgets().unwrap());
+                self.budgets.set_items(api.get_budgets().unwrap());
                 noop()
             }
             KeyCode::Char('k') => {
