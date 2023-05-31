@@ -54,7 +54,7 @@ impl Homepage {
 
 #[derive(PartialEq)]
 enum PageState {
-    BudgetSelect,
+    _BudgetSelect,
 }
 
 impl Page for Homepage {

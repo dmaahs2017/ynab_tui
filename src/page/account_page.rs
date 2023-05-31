@@ -17,7 +17,7 @@ pub struct AccountsPage {
 impl AccountsPage {
     pub fn new(budget: Budget, api: &mut YnabApi) -> Self {
         let account_list = api.get_accounts(&budget.id).unwrap();
-        let transactions_list = api.list_transactions(&budget.id, None).unwrap();
+        let transactions_list = api.list_transactions(&budget.id).unwrap();
 
         let mut accounts = StatefulList::new();
         accounts
@@ -108,7 +108,7 @@ impl AccountsPage {
             KeyCode::Esc => {
                 self.accounts.unselect();
                 self.transactions
-                    .set_items(api.list_transactions(&self.budget.id, None).unwrap());
+                    .set_items(api.list_transactions(&self.budget.id).unwrap());
                 noop()
             }
             KeyCode::Enter => noop(),

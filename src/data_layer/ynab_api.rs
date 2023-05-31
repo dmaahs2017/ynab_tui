@@ -1,14 +1,14 @@
 use chrono::{DateTime, Duration, Local};
 use serde::{Deserialize, Serialize};
-use serde_json::{self, Value as JsonValue};
-use std::{collections::HashMap, fs, io};
+use serde_json;
+use std::{collections::{HashMap, hash_map::Entry}, fs, io};
 use ynab_openapi::{
     apis::{
         accounts_api, budgets_api,
         configuration::{ApiKey, Configuration},
         transactions_api,
     },
-    models::{AccountsResponse, BudgetSummaryResponse, TransactionDetail, TransactionsResponse},
+    models::TransactionDetail,
 };
 
 use super::models::{Account, Budget, Transaction};
@@ -53,10 +53,18 @@ impl YnabApi {
         F: Fn(&Configuration) -> ApiResult<T>,
         T: Serialize + Deserialize<'a>,
     {
-        let cache_entry = self.cache.entry(endpoint).or_insert_with(|| CacheEntry {
-            datetime: Local::now(),
-            response_json: serde_json::to_string(&api_call(&self.config).unwrap()).unwrap(),
-        });
+        let cache_entry: &mut CacheEntry = match self.cache.entry(endpoint) {
+            Entry::Occupied(v) => {
+                v.into_mut()
+            },
+            Entry::Vacant(e) => {
+                let ce = CacheEntry {
+                    datetime: Local::now(),
+                    response_json: serde_json::to_string(&api_call(&self.config)?)?,
+                };
+                e.insert(ce)
+            },
+        };
 
         if Local::now() - cache_entry.datetime < self.refresh_duration && !self.force_refresh {
             self.cache_hit += 1;
@@ -132,13 +140,8 @@ impl YnabApi {
     pub fn list_transactions(
         &mut self,
         budget_id: &str,
-        last_knowledge: Option<usize>,
     ) -> ApiResult<Vec<Transaction>> {
-        let endp = if let Some(lk) = last_knowledge {
-            format!("/budgets/{budget_id}/transactions?last_knowledge_of_server={lk}")
-        } else {
-            format!("/budgets/{budget_id}/transactions")
-        };
+        let endp = format!("/budgets/{budget_id}/transactions");
 
         let response = self.get(endp, |config| {
             Ok(transactions_api::get_transactions(
