@@ -56,6 +56,11 @@ impl<T> StatefulTable<T> {
         self
     }
 
+    pub fn selected(&self) -> Option<&T> {
+        let i = self.state.selected()?;
+        self.items.get(i)
+    }
+
     pub fn select_next(&mut self) -> usize {
         let i = match self.state.selected() {
             Some(i) => {
@@ -108,9 +113,7 @@ impl<T> StatefulTable<T> {
         };
 
         let table = Table::new(table)
-            .header(Row::new(vec![
-                "Payee", "Category", "Memo", "Amount", "Date",
-            ]))
+            .header(Row::new(["Payee", "Category", "Memo", "Amount", "Date"]))
             .block(block)
             .highlight_style(selected_style)
             .widths(&[

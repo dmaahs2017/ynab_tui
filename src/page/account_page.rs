@@ -150,6 +150,12 @@ impl AccountsPage {
                 self.switch_to_edit_state();
                 noop()
             }
+            KeyCode::Enter => {
+                if let Some(t) = self.transactions.selected() {
+                    return Ok(Message::NewPage(Box::new(TransactionPage::new(t.clone()))));
+                }
+                noop()
+            }
             _ => noop(),
         }
     }
@@ -256,8 +262,4 @@ impl Page for AccountsPage {
             .map(|a| a.name.clone())
             .unwrap_or("All Accounts".to_string())
     }
-}
-
-fn noop() -> io::Result<Message> {
-    Ok(Message::Noop)
 }
