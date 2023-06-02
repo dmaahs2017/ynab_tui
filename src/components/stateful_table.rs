@@ -113,9 +113,7 @@ impl<T> StatefulTable<T> {
         };
 
         let table = Table::new(table)
-            .header(Row::new([
-                "Payee", "Category", "Memo", "Amount", "Date",
-            ]))
+            .header(Row::new(["Payee", "Category", "Memo", "Amount", "Date"]))
             .block(block)
             .highlight_style(selected_style)
             .widths(&[

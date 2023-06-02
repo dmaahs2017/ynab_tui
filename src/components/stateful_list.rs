@@ -139,9 +139,7 @@ impl<T: Clone> StatefulList<T> {
 
 impl StatefulList<String> {
     pub fn render<B: Backend>(&self, f: &mut Frame<B>, area: Rect) {
-        f.render_stateful_widget(self.ui(|b| b), area, unsafe {
-            force_mut_ref(&self.state)
-        })
+        f.render_stateful_widget(self.ui(|b| b), area, unsafe { force_mut_ref(&self.state) })
     }
 }
 

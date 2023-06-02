@@ -1,20 +1,19 @@
 use std::{io, time::Duration};
 
-use crossterm::event::{poll, read, KeyEvent, Event, KeyModifiers, KeyCode};
-use tui::{Frame, backend::CrosstermBackend, layout::{Rect, Layout, Constraint}, widgets::{*, self}, style::*};
+use crossterm::event::{poll, read, Event, KeyCode};
+use tui::{backend::CrosstermBackend, layout::Rect, Frame};
 use ynab_openapi::models::TransactionDetail;
 
-use crate::{data_layer::YnabApi, components::StatefulList};
+use crate::{components::StatefulList, data_layer::YnabApi};
 
 use super::*;
 
 pub struct TransactionPage {
-    transaction: StatefulList<String>
+    transaction: StatefulList<String>,
 }
 
 impl TransactionPage {
     pub fn new(t: TransactionDetail) -> Self {
-
         let mut transaction = StatefulList::new();
         let xs = vec![
             t.date,
@@ -25,7 +24,7 @@ impl TransactionPage {
             t.amount.to_string(),
         ];
         transaction.set_items(xs);
-        Self { transaction }  
+        Self { transaction }
     }
 }
 
@@ -34,7 +33,7 @@ impl Page for TransactionPage {
         self.transaction.render(frame, area);
     }
 
-    fn update(&mut self, data_gateway: &mut YnabApi) -> io::Result<Message> {
+    fn update(&mut self, _api: &mut YnabApi) -> io::Result<Message> {
         if let Ok(false) = poll(Duration::from_millis(200)) {
             return noop();
         }

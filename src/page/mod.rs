@@ -20,7 +20,7 @@ pub enum Message {
 pub trait Page {
     fn ui(&mut self, frame: &mut Frame<CrosstermBackend<io::Stdout>>, area: Rect);
 
-    fn update(&mut self, data_gateway: &mut YnabApi) -> io::Result<Message>;
+    fn update(&mut self, api: &mut YnabApi) -> io::Result<Message>;
 
     fn name(&self) -> String;
 }

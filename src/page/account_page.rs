@@ -152,10 +152,10 @@ impl AccountsPage {
             }
             KeyCode::Enter => {
                 if let Some(t) = self.transactions.selected() {
-                    return Ok(Message::NewPage(Box::new(TransactionPage::new(t.clone()))))
+                    return Ok(Message::NewPage(Box::new(TransactionPage::new(t.clone()))));
                 }
                 noop()
-            },
+            }
             _ => noop(),
         }
     }
@@ -263,4 +263,3 @@ impl Page for AccountsPage {
             .unwrap_or("All Accounts".to_string())
     }
 }
-
