@@ -1,2 +1,11 @@
 TODO:
-- Select budget, then use a list to choose accounts for which transactions to show
+- Add a cursor to text box
+- :command pattern
+    - Sum
+- /filtering improvements
+    - Filter by column, or multiple columns
+- Inspect Transaction Page improvements
+    - Edit a transaction
+    - Clear / unclear
+- Self documenting help popup
+- Upgrade TUI to ratatui maintained crate
